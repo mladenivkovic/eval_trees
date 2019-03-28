@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
 
+#======================================================
+# Evaluate trees for paper.
+# New version. Cleaner version.
+# Usage: ./evaltrees.py
+# use in directory where output_XXXXX dirs are
+#======================================================
+
 
 import numpy as np
 import readwrite as rw
 import cosmo
 import tree
 import classes as cl
+import visualize as vs
 
 
 #====================================
@@ -47,4 +55,4 @@ if __name__ == '__main__' :
     tree.clean_jumpers(p, r, mtd, sd)
     tree.get_mass_flucts(p, r, mtd, hd, sd)
 
-
+    vs.plot_mass_growth(r)

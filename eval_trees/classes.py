@@ -144,10 +144,18 @@ class results():
     """
 
     def __init__(self):
-        self.hmg = None     # halo mass growth
-        self.hmf = None     # halo mass fluctuation
-        self.shmg = None    # subhalo mass growth
-        self.shmf = None    # subhalo mass fluctuation
+        self.hmg = np.zeros(1)      # halo mass growth
+        self.hmg_free = 0           # last used index for hmg
+        self.hmf = np.zeros(1)      # halo mass fluctuation
+        self.hmf_free = 0           # last used index for hmf
+        self.shmg = np.zeros(1)     # subhalo mass growth
+        self.shmg_free = 0          # last used index for shmg
+        self.shmf = np.zeros(1)     # subhalo mass fluctuation
+        self.shmf_free = 0          # last used index for shmf
+        self.mg = np.zeros(1)       # all mass growth
+        self.mg_free = 0            # last used index for mg
+        self.mf = np.zeros(1)       # all mass fluctuation
+        self.mf_free = 0            # last used index for mf
 
         self.mbl = None     # main branch length
         self.nbr = None     # number of branches
@@ -155,6 +163,40 @@ class results():
         self.njumpers = 0   # total number of jumpers
         self.npruned = 0    # number of pruned trees
         return
+
+
+
+    #---------------------------------------
+    def add_halo_growth(self, val):
+    #---------------------------------------
+        if self.hmg_free == self.hmg.shape[0]:
+            self.hmg.resize(self.hmg.shape[0]+1000)
+
+        self.hmg[self.hmg_free] = val
+        self.hmg_free += 1
+        return
+
+    #---------------------------------------
+    def add_subhalo_growth(self, val):
+    #---------------------------------------
+        if self.shmg_free == self.shmg.shape[0]:
+            self.shmg.resize(self.shmg.shape[0]+1000)
+
+        self.shmg[self.shmg_free] = val
+        self.shmg_free += 1
+        return
+
+    #---------------------------------------
+    def add_any_growth(self, val):
+    #---------------------------------------
+        if self.mg_free == self.mg.shape[0]:
+            self.mg.resize(self.mg.shape[0]+1000)
+
+        self.mg[self.mg_free] = val
+        self.mg_free += 1
+        return
+
+
 
 
 
