@@ -21,6 +21,7 @@ import visualize as vs
 #====================================
 
 # mass threshold for halos and subhalos
+# default value, you can ignore it
 mthresh_main = 2e11
 mthresh_sub  = 2e11
 
@@ -49,10 +50,14 @@ if __name__ == '__main__' :
     rw.read_halo_data(p, hd)
 
     cosmo.compute_cosmo_quantities(p, c, sd) # in particular get p.z0 and rho_crit
-
-
+    
+    tree.get_mass_thresholds(p, mtd, hd)
     #  tree.count_pruned_trees(p, r, mtd, sd)
     tree.clean_jumpers(p, r, mtd, sd)
     tree.get_mass_flucts(p, r, mtd, hd, sd)
 
-    vs.plot_mass_growth(r)
+    #  vs.plot_mass_growth(r)
+
+    rw.write_results(r)
+
+    print('Finished.')

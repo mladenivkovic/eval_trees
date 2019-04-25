@@ -77,6 +77,54 @@ def clean_jumpers(p, r, mtd, sd):
 
 
 
+
+#====================================
+def get_mass_thresholds(p, mtd, hd):
+#====================================
+    """
+    Compute mass thresholds:
+    include 1000 main haloes and 200 subhaloes at z=0
+
+        p:      params object
+        mtd:    mergertree data
+        hd:     halodata
+    """
+
+    hids = hd.haloid[p.z0]
+    ids = mtd.descendants[p.z0]
+    
+    is_halo = np.empty(ids.shape, dtype=np.bool)
+    for i, id in enumerate(ids):
+        is_halo[i] = id in hids
+
+    hmasses = mtd.mass[p.z0][is_halo]
+    shmasses = mtd.mass[p.z0][np.logical_not(is_halo)]
+
+    hmasses = np.sort(hmasses) 
+    shmasses = np.sort(shmasses)
+    
+    try:
+        p.mth_main = hmasses[-1000]
+    except IndexError:
+        print("There aren't 1000 haloes in z=0. Setting no mass threshold.")
+        p.mth_main = 0
+    try:
+        p.mth_sub = shmasses[-200]
+    except IndexError:
+        print("There aren't 200 subhaloes in z=0. Setting no mass threshold.")
+        p.mth_sub = 0
+
+
+    print("Main halo mass threshold is: {0:.3e}".format(p.mth_main))
+    print("Subhalo mass threshold is: {0:.3e}".format(p.mth_sub))
+
+    return
+    
+
+
+
+
+
 #=========================================
 def get_mass_flucts(p, r, mtd, cd, sd):
 #=========================================
@@ -94,20 +142,33 @@ def get_mass_flucts(p, r, mtd, cd, sd):
 
     # loop over clumps at z=0 and walk down their main branch
 
+    debug = False
+    extremecount = 0
+
     for c, clump in enumerate(mtd.descendants[p.z0]):
+        prevhalomgrowth = None
+        prevsubhalomgrowth = None
+        prevbothmgrowth = None
+
         if clump > 0:
             # clump = 0 is removed jumper;
             # clump < 0 is merger; we're only taking main branch here
 
             desc_snap_ind = p.z0
             dind = c
+            desc = mtd.descendants[p.z0][c]
             prog = mtd.progenitors[p.z0][c]
 
             loop = True
 
-            while loop:
+            while prog > 0:
 
-                desc_is_halo = clump in cd.haloid[desc_snap_ind]
+                desc_is_halo = desc in cd.haloid[desc_snap_ind]
+
+                if debug: 
+                    if desc_snap_ind == p.z0:
+                        print("--------------------------------------")
+                    print("Clump", desc, "is halo?", desc_is_halo )
 
                 if prog > 0:    # if progenitor isn't jumper
                     # find progenitor's index in previous snapshot
@@ -121,50 +182,91 @@ def get_mass_flucts(p, r, mtd, cd, sd):
 
 
                     prog_is_halo = prog in cd.haloid[p_snap_ind]
+                    if debug:
+                        print("Prog", prog, "is halo?", prog_is_halo)
 
                     md = mtd.mass[desc_snap_ind][dind]
                     mp = mtd.mass[p_snap_ind][pind]
                     td = sd.times[desc_snap_ind]
                     tp = sd.times[p_snap_ind]
 
-                    calc_mgrowth = True
-                    if prog_is_halo:
-                        calc_mgrowth = calc_mgrowth and (mp >= p.mth_main)
-                    else:
-                        calc_mgrowth = calc_mgrowth and (mp >= p.mth_sub)
 
-                    if desc_is_halo:
-                        calc_mgrowth = calc_mgrowth and (md >= p.mth_main)
-                    else:
-                        calc_mgrowth = calc_mgrowth and (md >= p.mth_sub)
+                    calc_desc_halo = desc_is_halo and (md >= p.mth_main)
+                    calc_desc_subhalo = (not desc_is_halo) and (md >= p.mth_sub)
+                    calc_desc_both = calc_desc_halo or (md >= p.mth_main) # where main and subhaloes are counted together
 
-                    if calc_mgrowth:
-                        mgrowth = _calc_mass_growth(md, mp, td, tp)
+                    calc_prog_halo = prog_is_halo and (mp >= p.mth_main)
+                    calc_prog_subhalo = (not prog_is_halo) and (mp >= p.mth_sub)
+                    calc_prog_both = calc_prog_halo or (mp >= p.mth_main)
+
+
+                    halomgrowth = None
+                    subhalomgrowth = None
+                    bothmgrowth = None
+
+                    if calc_desc_halo and calc_prog_halo:
+                        halomgrowth = _calc_mass_growth(md, mp, td, tp)
+                        r.add_halo_growth(halomgrowth)
+                    if calc_desc_subhalo and calc_prog_subhalo:
+                        subhalomgrowth = _calc_mass_growth(md, mp, td, tp)
+                        r.add_subhalo_growth(subhalomgrowth)
+
+                    if calc_desc_both and calc_prog_both:
+                        bothmgrowth = _calc_mass_growth(md, mp, td, tp)
+                        r.add_any_growth(bothmgrowth)
                         
-                        if (prog_is_halo and desc_is_halo):
-                            r.add_halo_growth(mgrowth)
-                        elif ((not prog_is_halo) and (not desc_is_halo)):
-                            r.add_subhalo_growth(mgrowth)
+                    if prevhalomgrowth is not None and halomgrowth is not None: 
+                        halomassfluct = _calc_mass_fluct(halomgrowth, prevhalomgrowth)
+                        r.add_halo_fluct(halomassfluct)
+                    if prevsubhalomgrowth is not None and subhalomgrowth is not None: 
+                        subhalomassfluct = _calc_mass_fluct(subhalomgrowth, prevsubhalomgrowth)
+                        r.add_subhalo_fluct(subhalomassfluct)
+                    if prevbothmgrowth is not None and bothmgrowth is not None: 
+                        bothmassfluct = _calc_mass_fluct(bothmgrowth, prevbothmgrowth)
+                        r.add_any_fluct(bothmassfluct)
 
-                        r.add_any_growth(mgrowth)
-             
-
-                
+                    
                     # prepare next loop
+                    
+                    prevhalomgrowth = halomgrowth
+                    prevsubhalomgrowth = subhalomgrowth
+                    prevbothmgrowth = bothmgrowth
 
                     desc_snap_ind = p_snap_ind
                     dind = pind
+                    desc = prog
                     prog = mtd.progenitors[p_snap_ind][pind]
 
 
-                elif prog == 0:
-                    loop = False
 
-                else:
-                    loop = False
+                    if halomgrowth is None and subhalomgrowth is None and bothmgrowth is None:
+                        newgrowths = False
+                    else:
+                        newgrowths = True
+                    if prevbothmgrowth is None and prevsubhalomgrowth is None and prevhalomgrowth is None:
+                        prevgrowths = False
+                    else:
+                        prevgrowths = True
+
+                    if (not newgrowths) and (not prevgrowths):
+                        break
 
 
-                    
+    print("Finished eval")
+
+
+
+
+#=========================================================
+def _calc_mass_fluct(current, previous):
+#=========================================================
+    """
+    caclucate mass growth fluctuation from current
+    mass growth in the loop (i.e. at current snapshot time)
+    and previous loop (i.e. at later snapshot time)
+    """
+
+    return 0.5*(previous - current)
 
 
 
@@ -177,7 +279,7 @@ def _calc_mass_growth(md, mp, td, tp):
     mp, tp: progenitor mass/time
     """
 
-    mass_growth = 2.0/np.pi*np.arctan((md - mp)*(tp + td)/(mp + md)/(tp-td))
+    mass_growth = 2.0/np.pi*np.arctan((md - mp)*(tp + td)/(mp + md)/(td-tp))
 
     return mass_growth
 

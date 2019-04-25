@@ -170,7 +170,7 @@ class results():
     def add_halo_growth(self, val):
     #---------------------------------------
         if self.hmg_free == self.hmg.shape[0]:
-            self.hmg.resize(self.hmg.shape[0]+1000)
+            self.hmg.resize(self.hmg.shape[0]+10000)
 
         self.hmg[self.hmg_free] = val
         self.hmg_free += 1
@@ -180,7 +180,7 @@ class results():
     def add_subhalo_growth(self, val):
     #---------------------------------------
         if self.shmg_free == self.shmg.shape[0]:
-            self.shmg.resize(self.shmg.shape[0]+1000)
+            self.shmg.resize(self.shmg.shape[0]+10000)
 
         self.shmg[self.shmg_free] = val
         self.shmg_free += 1
@@ -190,10 +190,42 @@ class results():
     def add_any_growth(self, val):
     #---------------------------------------
         if self.mg_free == self.mg.shape[0]:
-            self.mg.resize(self.mg.shape[0]+1000)
+            self.mg.resize(self.mg.shape[0]+10000)
 
         self.mg[self.mg_free] = val
         self.mg_free += 1
+        return
+
+
+
+    #---------------------------------------
+    def add_halo_fluct(self, val):
+    #---------------------------------------
+        if self.hmf_free == self.hmf.shape[0]:
+            self.hmf.resize(self.hmf.shape[0]+10000)
+
+        self.hmf[self.hmf_free] = val
+        self.hmf_free += 1
+        return
+
+    #---------------------------------------
+    def add_subhalo_fluct(self, val):
+    #---------------------------------------
+        if self.shmf_free == self.shmf.shape[0]:
+            self.shmf.resize(self.shmf.shape[0]+10000)
+
+        self.shmf[self.shmf_free] = val
+        self.shmf_free += 1
+        return
+
+    #---------------------------------------
+    def add_any_fluct(self, val):
+    #---------------------------------------
+        if self.mf_free == self.mf.shape[0]:
+            self.mf.resize(self.mf.shape[0]+10000)
+
+        self.mf[self.mf_free] = val
+        self.mf_free += 1
         return
 
 

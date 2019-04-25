@@ -326,3 +326,55 @@ def read_halo_data(p, hd):
     return
 
 
+
+
+#==========================
+def write_results(r):
+#==========================
+    """
+    Write results to file.
+    r: results object
+    """
+
+    fname = 'eval_trees_new.txt'
+    nbins = 100
+
+    dfile = open(fname, 'w')
+
+    dfile.write("nbins={0:6d}\n".format(nbins))
+    
+
+    norm = r.mg_free
+    for arr, n in [(r.mg, r.mg_free), (r.hmg, r.hmg_free), (r.shmg, r.shmg_free)] :
+        cut = arr[:n]
+        hist, bin_edges = np.histogram(cut, bins=nbins, range=(-1, 1))
+        hist = hist/norm # normalize histogram
+        bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
+        for i in hist:
+            dfile.write('{0:12e} '.format(i))
+        dfile.write("\n")
+        for c in bin_centers:
+            dfile.write('{0:12e} '.format(c))
+        dfile.write("\n")
+
+
+
+
+    norm = r.mf_free
+    for arr, n in [(r.mf, r.mf_free), (r.hmf, r.hmf_free), (r.shmf, r.shmf_free)] :
+        cut = arr[:n]
+        hist, bin_edges = np.histogram(cut, bins=nbins, range=(-1, 1))
+        hist = hist/norm # normalize histogram
+        bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
+        for i in hist:
+            dfile.write('{0:12e} '.format(i))
+        dfile.write("\n")
+        for c in bin_centers:
+            dfile.write('{0:12e} '.format(c))
+        dfile.write("\n")
+
+
+    return
+
+
+
