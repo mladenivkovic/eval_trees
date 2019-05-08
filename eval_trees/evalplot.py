@@ -95,10 +95,12 @@ def main():
     #  allfiles = ['eval_trees-ntrace-'+str(i)+'.txt' for i in ntrace]
     #  labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
     #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
+    #  suffix='ntrace'
 
     allfiles = [ 'eval_trees-inclusive-nosaddle.txt',  'eval_trees-exclusive-nosaddle.txt', 'eval_trees-inclusive-saddle.txt', 'eval_trees-exclusive-saddle.txt' ]
     labelnames =[ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
     linestyle = ['--', '--', ':', ':']
+    suffix='inc-excl'
 
     #  linestyle = ['-', ':', '--', '-.', '-', ':', '--', '-.']
     #  linestyle = ['-']*10
@@ -182,7 +184,7 @@ def main():
             mass_growth, mgmax = get_line_to_array(srcfile.readline(), mgmax, False)
             mgmin = min(mgmin, mass_growth.min())
 
-            ax.semilogy(mass_growth, mass_growth_counts, label=labelnames[f], lw=4, c=colors[f], ls=linestyle[f], alpha=0.7)
+            ax.semilogy(mass_growth, mass_growth_counts, label=labelnames[f], lw=3, c=colors[f], ls=linestyle[f], alpha=0.7)
 
 
         #----------------------
@@ -202,7 +204,7 @@ def main():
             mass_flucts, mfmax = get_line_to_array(srcfile.readline(), mfmax, False)
             mfmin = min(mass_flucts.min(), mfmin)
 
-            ax.semilogy(mass_flucts, mass_fluct_counts, label=labelnames[f], lw=4, c=colors[f], ls=linestyle[f], alpha=0.7)
+            ax.semilogy(mass_flucts, mass_fluct_counts, label=labelnames[f], lw=3, c=colors[f], ls=linestyle[f], alpha=0.7)
 
 
         srcfile.close()
@@ -294,10 +296,10 @@ def main():
     #  plt.xscale('symlog')
 
 
-    figname="mass_growth.pdf"
+    figname="mass_growth-"+suffix+".pdf"
     save_figures(figname, fig1)
 
-    figname="mass_fluctuations.pdf"
+    figname="mass_fluctuations-"+suffix+".pdf"
     save_figures(figname, fig2)
 
 
