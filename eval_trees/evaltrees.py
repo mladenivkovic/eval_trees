@@ -51,12 +51,20 @@ if __name__ == '__main__' :
 
     cosmo.compute_cosmo_quantities(p, c, sd) # in particular get p.z0 and rho_crit
     
+    tree.clean_jumpers(p, r, mtd, sd)
+    tree.determine_if_halo(p, mtd, hd)
     tree.get_mass_thresholds(p, mtd, hd)
     #  tree.count_pruned_trees(p, r, mtd, sd)
-    tree.clean_jumpers(p, r, mtd, sd)
-    tree.get_mass_flucts(p, r, mtd, hd, sd)
 
-    #  vs.plot_mass_growth(r)
+    # get geometry
+    #  tree.get_main_branch_lengths(p, r, mtd, hd, sd)
+    #  tree.get_nr_of_branches(p, r, mtd, hd, sd)
+
+    # get mass evolution
+    tree.get_mass_evolution(p, r, mtd, hd, sd)
+
+    vs.plot_mass_growth(r)
+    #  vs.plot_geometry(p, r)
 
     rw.write_results(r)
 

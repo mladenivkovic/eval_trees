@@ -72,19 +72,19 @@ class mtreedata():
         """
         par: params object
         """
-        self.progenitors             = [np.zeros(1) for i in range(par.noutput)]
-        self.descendants             = [np.zeros(1) for i in range(par.noutput)]
-        self.progenitor_outputnrs    = [np.zeros(1) for i in range(par.noutput)]
-        self.mass                    = [np.zeros(1) for i in range(par.noutput)]
-        self.npart                   = [np.zeros(1) for i in range(par.noutput)]
-        self.x                       = [np.zeros(1) for i in range(par.noutput)]
-        self.y                       = [np.zeros(1) for i in range(par.noutput)]
-        self.z                       = [np.zeros(1) for i in range(par.noutput)]
-        self.vx                      = [np.zeros(1) for i in range(par.noutput)]
-        self.vy                      = [np.zeros(1) for i in range(par.noutput)]
-        self.vz                      = [np.zeros(1) for i in range(par.noutput)]
+        self.progenitors             = [np.zeros(1) for i in range(par.noutput)] # progenitor IDs
+        self.descendants             = [np.zeros(1) for i in range(par.noutput)] # descendant IDs
+        self.progenitor_outputnrs    = [np.zeros(1) for i in range(par.noutput)] # snapshot number of progenitor
+        self.mass                    = [np.zeros(1) for i in range(par.noutput)] # descendant mass
+        self.npart                   = [np.zeros(1) for i in range(par.noutput)] # descendant npart exclusive
+        self.x                       = [np.zeros(1) for i in range(par.noutput)] # descendant x
+        self.y                       = [np.zeros(1) for i in range(par.noutput)] # descendant y
+        self.z                       = [np.zeros(1) for i in range(par.noutput)] # descendant z
+        self.vx                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel x
+        self.vy                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel y
+        self.vz                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel z
 
-
+        self.is_halo                 = [np.zeros(1) for i in range(par.noutput)] # descendant is halo or not
         self.nhalosmax = 0
         return
 
@@ -162,6 +162,13 @@ class results():
 
         self.njumpers = 0   # total number of jumpers
         self.npruned = 0    # number of pruned trees
+
+        self.branch_bins = [100, 500, 1000]                             # particle numbers for bins of main branch lengths
+        npartbins = len(self.branch_bins) + 1
+        self.branchlengths = [np.zeros(1) for b in range(npartbins)]    # lengths of main branches, divided into particle bins
+        self.branchlen_free = [0 for b in range(npartbins)]             # first free index for every bin
+        self.nbranches = [np.zeros(1) for b in range(npartbins)]        # number of branches, divided into particle bins
+        self.nbranch_free = [0 for b in range(npartbins)]               # first free index for every bin
         return
 
 
@@ -229,6 +236,53 @@ class results():
         return
 
 
+    #---------------------------------------------
+    def add_branch_length(self, val, npart):
+    #---------------------------------------------
+        """
+        Add new branch length, put it in the right bin based on npart
+        """
+
+        # first find the right bin
+        b = 0
+        while npart > self.branch_bins[b]:
+            b+=1
+            if b == len(self.branch_bins):
+                break
+
+
+        if self.branchlen_free[b] == self.branchlengths[b].shape[0]:
+            self.branchlengths[b].resize(self.branchlengths[b].shape[0]+10000)
+
+        self.branchlengths[b][self.branchlen_free[b]] = val
+        self.branchlen_free[b] += 1
+
+        return
+
+
+
+    #---------------------------------------------
+    def add_nr_branches(self, val, npart):
+    #---------------------------------------------
+        """
+        Add new branch length, put it in the right bin based on npart
+        """
+
+        # first find the right bin
+        b = 0
+        while npart > self.branch_bins[b]:
+            b+=1
+            if b == len(self.branch_bins):
+                break
+
+
+        if self.nbranch_free[b] == self.nbranches[b].shape[0]:
+            self.nbranches[b].resize(self.nbranches[b].shape[0]+10000)
+
+        self.nbranches[b][self.nbranch_free[b]] = val
+        self.nbranch_free[b] += 1
+
+        return
 
 
 
