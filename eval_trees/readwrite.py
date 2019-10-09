@@ -328,9 +328,9 @@ def read_halo_data(p, hd):
 
 
 
-#==========================
-def write_results(r):
-#==========================
+#===================================
+def write_results_formatted(r):
+#===================================
     """
     Write results to file.
     r: results object
@@ -378,3 +378,26 @@ def write_results(r):
 
 
 
+#===================================
+def write_results(p, sd, r):
+#===================================
+    """
+    Write results to file.
+    Here: just dump a pkl
+
+        p: params object
+        sd: snapshotdata object
+        r: results object
+    """
+
+    print("Dumping results")
+
+    import pickle
+    dumplist = [p, sd, r]
+    
+    fname = 'eval_trees.pkl'
+    f = open(fname, 'wb')
+    pickle.dump(dumplist, f)
+    f.close()
+
+    return

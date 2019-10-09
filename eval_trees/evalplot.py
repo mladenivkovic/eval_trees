@@ -7,10 +7,11 @@
 
 import numpy as np
 import matplotlib as mpl
-mpl.use('Agg')
+#  mpl.use('Agg')
 import matplotlib.pyplot as plt
-plt.ioff()
+#  plt.ioff()
 from matplotlib.font_manager import FontProperties # for legend
+import pickle
 
 # use LaTeX text
 from matplotlib import rc
@@ -23,51 +24,27 @@ fontP=FontProperties()
 fontP.set_size('small') 
 
 
-#=========================================================
-def get_line_to_array(linestring, maxcounter, toint=False):
-#=========================================================
+
+
+
+
+#===============================================
+def save_figures(figname, fig, rect=None):
+#===============================================
     """
-    Translate string line separated by commas to numpy array of integers (if toint=True) or floats (if toint=False)
-    simultaneously find highest value in array
+    Saves figure fig as figname as .png
     """
 
-    import numpy as np
-
-    linestring = linestring.strip()
-    outlist = linestring.split(" ")
-
-    if toint:
-        for i, val in enumerate(outlist):
-            outlist[i] = int(val.strip())
-            maxcounter = max(maxcounter, outlist[i])
-        out = np.array(outlist, dtype='int')
-
+    if rect is not None:
+        fig.tight_layout(rect=rect)
     else:
-        for i, val in enumerate(outlist):
-            outlist[i] = float(val.strip())
-            maxcounter = max(maxcounter, outlist[i])
-
-        out = np.array(outlist, dtype='float')
-
-    return out, maxcounter
-
-
-
-
-
-
-#==================================
-def save_figures(figname, fig):
-#==================================
-    """
-    Saves figure fig as figname as .pdf
-    """
-
-    fig.tight_layout()
-    fig.savefig(figname, dpi=300, form='pdf')
+        fig.tight_layout()
+    fig.savefig(figname, dpi=300, form='png')
     print("Saved", figname)
 
     return
+
+
 
 
 
@@ -84,8 +61,9 @@ def main():
     #--------------------
     # Debug
     #--------------------
-    #  allfiles = ['eval_trees.txt']
-    #  labelnames = ['label']
+    allfiles = ['eval_trees.pkl']
+    labelnames = ['label']
+    suffix = 'debug'
 
 
     #--------------------
@@ -97,10 +75,10 @@ def main():
     #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
     #  suffix='ntrace'
 
-    allfiles = [ 'eval_trees-inclusive-nosaddle.txt',  'eval_trees-exclusive-nosaddle.txt', 'eval_trees-inclusive-saddle.txt', 'eval_trees-exclusive-saddle.txt' ]
-    labelnames =[ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
+    #  allfiles = [ 'eval_trees-inclusive-nosaddle.txt',  'eval_trees-exclusive-nosaddle.txt', 'eval_trees-inclusive-saddle.txt', 'eval_trees-exclusive-saddle.txt' ]
+    #  labelnames =[ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
     linestyle = ['--', '--', ':', ':']
-    suffix='inc-excl'
+    #  suffix='inc-excl'
 
     #  linestyle = ['-', ':', '--', '-.', '-', ':', '--', '-.']
     #  linestyle = ['-']*10
@@ -114,48 +92,37 @@ def main():
     else:
         ncols = 3
 
+    linewidth = 2
 
 
     #==========================
     # Set up
     #==========================
 
-
-
-    fig1 = plt.figure(1, figsize=(18,6))
+    fig1 = plt.figure(1, figsize=(18, 6))
     ax1 = fig1.add_subplot(131)
-    ax2 = fig1.add_subplot(132, sharey=ax1)
-    ax3 = fig1.add_subplot(133, sharey=ax1)
-    axgroup1 = [ax1, ax2, ax3]
+    ax2 = fig1.add_subplot(132)
+    ax3 = fig1.add_subplot(133)
 
-    fig2 = plt.figure(2, figsize=(18,6))
+    fig2 = plt.figure(2, figsize=(18, 6))
     ax4 = fig2.add_subplot(131)
-    ax5 = fig2.add_subplot(132, sharey=ax4)
-    ax6 = fig2.add_subplot(133, sharey=ax4)
-    axgroup2 = [ax4, ax5, ax6]
+    ax5 = fig2.add_subplot(132)
+    ax6 = fig2.add_subplot(133)
 
-    maxlen = 0
-    maxcount1 = 0
-    maxnbranch = 0
-    maxcount2 = 0
-    mincount1 = 1
-    mincount2 = 1
-    mgmax = 0
-    mgmin = 1
-    mgcountmin=1
-    mgcountmax=0
-    mfmax = 0
-    mfmin = 0
-    mfcountmin = 1
-    mfcountmax = 0
-    displmax = 0
-    displmin = 1
-    dcountmax = 0
-    dcountmin = 1
+    fig3 = plt.figure(3, figsize=(18,12))
+    npartbins = 3   # too lazy to read in results object here; see visualize.py
+    for b in range(2*(npartbins+1)):
+        fig3.add_subplot(npartbins+1, 2, b+1)
 
 
+    # tweaking stuff to store
+    mblmin = 1000
+    nbranchmin = 1000
+    fluctmin = 10000
+    growthmin = 10000
 
-
+    nbins_nbranches = 100 # how many bins to use for number of branches; = max number of branches expected
+    #  nbins_nbranches = 1500 # how many bins to use for number of branches; = max number of branches expected
 
     #=============================
     # Read in data
@@ -163,146 +130,208 @@ def main():
 
     for f,srcfname in enumerate(allfiles):
 
-        srcfile = open(srcfname, 'r')
-
-        # skip 1 lines first
-        for i in range(1):
-            srcfile.readline()
-
-
-        #-------------------------
-        # Mass growth
-        #-------------------------
-        
-        for ax in axgroup1:
-
-            mass_growth_counts, mgcountmax = get_line_to_array(srcfile.readline(), mgcountmax, False)
-            mgcountmin = min(mass_growth_counts[mass_growth_counts>0].min(), mgcountmin)
-            # replace zeroes with value orders of magnitude smaller
-            mass_growth_counts[mass_growth_counts==0] = mgcountmin*1e-6
-
-            mass_growth, mgmax = get_line_to_array(srcfile.readline(), mgmax, False)
-            mgmin = min(mgmin, mass_growth.min())
-
-            ax.semilogy(mass_growth, mass_growth_counts, label=labelnames[f], lw=3, c=colors[f], ls=linestyle[f], alpha=0.7)
-
-
-        #----------------------
-        # mass fluctuations
-        #----------------------
-
-        for ax in axgroup2:
-
-            mass_fluct_counts, mfcountmax = get_line_to_array(srcfile.readline(), mfcountmax, False)
-            mfcountmin = min(mass_fluct_counts[mass_fluct_counts>0].min(), mfcountmin)
-
-
-            # replace zeroes with value orders of magnitude smaller
-            mass_fluct_counts[mass_fluct_counts==0] = mfcountmin*1e-6
-
-
-            mass_flucts, mfmax = get_line_to_array(srcfile.readline(), mfmax, False)
-            mfmin = min(mass_flucts.min(), mfmin)
-
-            ax.semilogy(mass_flucts, mass_fluct_counts, label=labelnames[f], lw=3, c=colors[f], ls=linestyle[f], alpha=0.7)
-
-
+        srcfile = open(srcfname, 'rb')
+        p, sd, r = pickle.load(srcfile) 
         srcfile.close()
 
 
+        #-------------------------------
+        # Mass Evolution
+        #-------------------------------
+
+        norm = r.mg_free
+        for arr, n, ax in [(r.mg, r.mg_free, ax1), (r.hmg, r.hmg_free, ax2), (r.shmg, r.shmg_free, ax3)] :
+            cut = arr[:n]
+            hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
+            hist = hist/norm # normalize histogram
+            growthmin = min(growthmin, hist[hist>0].min())
+            bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
+
+            ax.semilogy(bin_centers, hist,
+                label = labelnames[f], c=colors[f], ls = linestyle[f],
+                lw=linewidth)
 
 
-
-
-
-
-
+        norm = r.mf_free
+        for arr, n, ax in [(r.mf, r.mf_free, ax4), (r.hmf, r.hmf_free, ax5), (r.shmf, r.shmf_free, ax6)] :
+            cut = arr[:n]
+            hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
+            hist = hist/norm # normalize histogram
+            fluctmin = min(fluctmin, hist[hist>0].min())
+            bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
  
+            ax.semilogy(bin_centers, hist,
+                label = labelnames[f], c=colors[f], ls = linestyle[f],
+                lw=linewidth)
+
+
+
+
+
+        #---------------------------------
+        # Geometry
+        #---------------------------------
+
+        npartbins = len(r.branchlengths)
+
+        # figure subplot setup:
+        #   1   2
+        #   3   4
+        #   5   6
+        #   7   8
+        # -> nr of branches: 2*(b+1)    -1 for list index of fig3.axes
+        # -> MBL: 2*b + 1               -1 for list index of fig3.axes
+
+
+        # plot branch lengths
+        for b in range(npartbins):
+            ax = fig3.axes[b*2]     
+            norm = r.branchlen_free[b]
+
+            cut = r.branchlengths[b][:r.branchlen_free[b]]
+            hist, bin_edges = np.histogram(cut, bins = p.nout, range=(0, p.nout))
+            hist = hist/norm
+            mblmin = min(mblmin, hist[hist>0].min())
+            #  bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
+            bins_left = bin_edges[:-1]
+
+            ax.semilogy(bins_left, hist,
+                label = labelnames[f], c=colors[f], ls = linestyle[f],
+                lw=linewidth)
+
+
+        # plot number of branches
+        for b in range(npartbins):
+            ax = fig3.axes[b*2+1]
+            norm = r.nbranch_free[b]
+
+            cut = r.nbranches[b][:r.nbranch_free[b]]
+            hist, bin_edges = np.histogram(cut, bins = nbins_nbranches, range=(0, nbins_nbranches))
+            hist = hist/norm
+            nbranchmin = min(nbranchmin, hist[hist>0].min())
+            #  bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
+            bins_left = bin_edges[:-1]
+
+            ax.semilogy(bins_left, hist,
+                label = labelnames[f], c=colors[f], ls = linestyle[f],
+                lw=linewidth)
+
+
+
+
+
 
     #==================================
     # Tweak plots and save figures
     #==================================
 
 
-
     #-------------------------
-    # Mass growth and flucts
+    # Mass growth
     #-------------------------
 
-    for ax in axgroup1:
-        ax.set_xlim(-1, 1)
+    plotnames = ['A: All Haloes', 'B: Main Haloes', 'C: Subhaloes']
+
+    for i, ax in enumerate(fig1.axes):
         # for inclusive/exclusive
-        ax.set_ylim(1e-4, 1e-1)
-        #  ax.set_title("Logarithmic Mass Growth")
+        ax.set_ylim(growthmin, 1e-1)
         ax.set_xlim(-1.05, 1.05)
-        xticks = np.linspace(-1,1, 6)
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(["%.2f" % i for i in xticks])
         ax.set_xlabel(r'$\beta_M = \frac{2}{\pi}\arctan\frac{d \log M}{d \log t}$')
-        ylabelmin = int(np.log10(mgcountmin))
-        ylabelmax = int(np.log10(mgcountmax)+0.5)
-        ax.set_ylim(mgcountmin/2, mgcountmax*2)
-        ax.set_yticks([10.0**i for i in range(ylabelmin, ylabelmax, 1)])
-        ax.set_yticklabels([r"$10^{"+str(i)+"}$" for i in range(ylabelmin, ylabelmax, 1)])
-        ax.set_ylabel(r'$N/N_{A, tot}$')
         ax.grid()
         ax.legend(loc='lower center', ncol=ncols,prop=fontP)
-    ax.legend(loc='upper center', ncol=ncols,prop=fontP)
+        ax.set_title(plotnames[i])
+
+    fig1.suptitle("Logarithmic Mass Growth")
+
+    figname="mass_growth-"+suffix+".png"
+    save_figures(figname, fig1, rect=[0, 0.03, 1, 0.95])
 
     
 
+    #-------------------------
+    # Mass growth flucts
+    #-------------------------
 
-    for ax in axgroup2:
-        ax.set_xlim(-1, 1)
-        ax.set_ylim(1e-4, 1e-1)
-
-
+    for i, ax in enumerate(fig2.axes):
+        # for inclusive/exclusive
+        ax.set_ylim(fluctmin, 1e-1)
         ax.set_xlim(-1.05, 1.05)
-        xticks = np.linspace(-1,1, 6)
-        ax.set_xticks(xticks)
-        ax.set_xticklabels(["%.2f" % i for i in xticks])
         ax.set_xlabel(r'$\xi_M = \frac{\beta_M(k, k+1) - \beta_M(k-1, k)}{2}$')
-        ylabelmin = int(np.log10(mfcountmin))
-        ylabelmax = int(np.log10(mfcountmax)+0.5)
-        ax.set_ylim(mfcountmin/2, mfcountmax*2)
-        ax.set_yticks([10.0**i for i in range(ylabelmin, ylabelmax, 1)])
-        ax.set_yticklabels([r"$10^{"+str(i)+"}$" for i in range(ylabelmin, ylabelmax, 1)])
-        ax.set_ylabel(r'$N/N_{A, tot}$')
         ax.grid()
         ax.legend(loc='lower center', ncol=ncols,prop=fontP)
-    ax.legend(loc='upper center', ncol=ncols,prop=fontP)
+        ax.set_title(plotnames[i])
 
-    ax1.set_title('A: All Haloes')
-    ax2.set_title('B: Main Haloes')
-    ax3.set_title('C: Subhaloes')
-    ax4.set_title('A: All Haloes')
-    ax5.set_title('B: Main Haloes')
-    ax6.set_title('C: Subhaloes')
+    fig2.suptitle("Mass Growth Fluctuations")
+
+    figname="mass_fluctuations-"+suffix+".png"
+    save_figures(figname, fig2, rect=[0, 0.03, 1, 0.95])
 
 
-    # draw 90% lines
-    #  ymin, ymax = ax9.get_ylim()
-    #  xl, xr = get_99_percent_position(mass_growth_counts, mass_growth)
-    #  ax9.plot([xl,xl], (ymin, ymax), 'r')
-    #  ax9.plot([xr,xr], (ymin, ymax), 'r')
-    #
-    #
-    #  ymin, ymax = ax10.get_ylim()
-    #  xl, xr = get_99_percent_position(mass_fluct_counts, mass_flucts)
-    #  ax10.plot([xl,xl], (ymin, ymax), 'r')
-    #  ax10.plot([xr,xr], (ymin, ymax), 'r')
-
-    #  plt.sca(ax9)
-    #  plt.xscale('symlog')
 
 
-    figname="mass_growth-"+suffix+".pdf"
-    save_figures(figname, fig1)
-
-    figname="mass_fluctuations-"+suffix+".pdf"
-    save_figures(figname, fig2)
 
 
+
+
+
+
+
+
+
+    binnames = [r'$< 100$ particles', r'$100-500$ particles', r'$500-1000$ particles', r'$> 1000$ particles']
+
+    #-------------------------------------
+    # Main Branch Lenght
+    #-------------------------------------
+
+    for b in range(npartbins):
+        ax = fig3.axes[b*2]
+        ax.grid()
+        ax.set_xlim(-0.5, p.nout)
+        ax.set_ylim(mblmin, 0.5)
+        ax.set_ylabel(r"$N/N_{tot}$")
+        if b == npartbins - 1:
+            ax.set_xlabel("Main Branch Length")
+            ax.legend()
+
+        #  add redshift axis
+        ax.set_xticks([i for i in range(0,p.nout, 10)])
+        ax.set_xticklabels(["{0:2d}".format(i) for i in range(0,p.nout, 10)])
+        if b==0:
+            axt = ax.twiny()
+            axt.set_xlim(-0.5, p.nout)
+            axt.set_xticks([i for i in range(0, p.nout, 10)])
+            axt.set_xticklabels(["%.2f" % abs(sd.redshift[i+p.z0]) for i in range(0, p.nout, 10)])
+            axt.set_xlabel(r'redshift $z$')
+
+        # label on right side of plot
+        axtwin = ax.twinx()
+        axtwin.set_yticks([])
+        axtwin.set_ylabel(binnames[b])
+
+
+    #-------------------------------------
+    # Number of Branches
+    #-------------------------------------
+
+    for b in range(npartbins):
+        ax = fig3.axes[b*2+1]
+        ax.grid()
+        ax.set_xlim(-0.5, nbins_nbranches)
+        ax.set_ylim(nbranchmin, 0.5)
+        ax.set_ylabel(r"$N/N_{tot}$ ")
+        if b == 0:
+            ax.legend()
+        if b == npartbins - 1:
+            ax.set_xlabel("Number of Branches")
+        # label on right side of plot
+        axtwin = ax.twinx()
+        axtwin.set_yticks([])
+        axtwin.set_ylabel(binnames[b])
+
+
+    figname = 'tree_geometry-'+suffix+'.png'
+    save_figures(figname, fig3)
 
 
 if __name__ == "__main__":

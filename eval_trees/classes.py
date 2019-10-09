@@ -48,14 +48,17 @@ class snapshotdata():
         """
         par: params object
         """
+        # read in
         self.aexp        = np.zeros(par.noutput)
-        self.H           = np.zeros(par.noutput)
-        self.rho_crit    = np.zeros(par.noutput)
-        self.times       = np.zeros(par.noutput)
         self.unit_l      = np.zeros(par.noutput)
         self.unit_m      = np.zeros(par.noutput)
         self.unit_t      = np.zeros(par.noutput)
         self.unit_dens   = np.zeros(par.noutput)
+        # to be computed
+        self.redshift    = np.zeros(par.noutput) # z
+        self.H           = np.zeros(par.noutput) # H(z)
+        self.rho_crit    = np.zeros(par.noutput)
+        self.times       = np.zeros(par.noutput) # t(z)
         return
  
 

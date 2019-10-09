@@ -320,7 +320,7 @@ def get_nr_of_branches(p, r, mtd, hd, sd):
     print("Counting number of branches")
 
     #-------------------------------------------------------
-    def _walk_tree_branches(dind, d_snap_ind, nbranches):
+    def walk_tree_branches(dind, d_snap_ind, nbranches):
     #-------------------------------------------------------
         """
         Recursive function to go down the tree and count branches
@@ -357,7 +357,7 @@ def get_nr_of_branches(p, r, mtd, hd, sd):
             raise IndexError
 
 
-        nbranches = _walk_tree_branches(pind, p_snap_ind, nbranches)
+        nbranches = walk_tree_branches(pind, p_snap_ind, nbranches)
 
         # now go down branches
         desc = mtd.descendants[d_snap_ind][dind]
@@ -378,14 +378,17 @@ def get_nr_of_branches(p, r, mtd, hd, sd):
                     # skip this loop iteration over branches
                     continue
 
-                print("Adding a branch for clump", prog, "at", p.outputnrs[p_snap_ind], "nbranches=", nbranches+1)
-                nbranches = _walk_tree_branches(pind, p_snap_ind, nbranches+1)
+                #  print("Adding a branch for clump", prog, "at", p.outputnrs[p_snap_ind], "nbranches=", nbranches+1)
+                nbranches = walk_tree_branches(pind, p_snap_ind, nbranches+1)
 
         return nbranches
 
 
 
 
+    #----------------------------------
+    # Main Loop
+    #----------------------------------
 
     for c, clump in enumerate(mtd.descendants[p.z0]):
     #  for c, clump in [(1, 2)]:
@@ -398,8 +401,8 @@ def get_nr_of_branches(p, r, mtd, hd, sd):
             desc_is_halo = mtd.is_halo[p.z0][c]
 
             if desc_is_halo:
-                print("-----------------------------------------------------")
-                nbranches = _walk_tree_branches(dind, p.z0, 0)
+                #  print("-----------------------------------------------------") # in case you're printing which branch you're adding
+                nbranches = walk_tree_branches(c, p.z0, 0)
                 r.add_nr_branches(nbranches, mtd.npart[p.z0][c])
 
 
@@ -632,8 +635,6 @@ def get_mass_evolution(p, r, mtd, cd, sd):
             # clump = 0 is removed jumper;
             # clump < 0 is merger; we're only taking main branch here
 
-            # TODO:
-            # check whether there is any work to do
             is_subhalo = not mtd.is_halo[p.z0][c]
             m = mtd.mass[p.z0][c]
 
