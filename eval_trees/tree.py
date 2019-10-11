@@ -93,7 +93,7 @@ def clean_jumpers(p, r, mtd, sd):
 
         p:      params object
         r:      results object
-        htd:    mtreedata object
+        mtd:    mtreedata object
         sd:     snapshotdata object
     """
 
@@ -109,8 +109,6 @@ def clean_jumpers(p, r, mtd, sd):
                 # where the clump is the progenitor
                 snapind = _get_snap_ind(p, mtd.progenitor_outputnrs[out][i]) - 1
 
-                #  print('found jumper ', pr, 'in snapshot', p.outputnrs[out], 'from snapshot', mtd.progenitor_outputnrs[out][i])
-                #  print('searching for progenitor in', p.outputnrs[snapind])
                 jumpind = np.where(mtd.progenitors[snapind]==-pr)[0] # where returns tuple
 
                 if (jumpind.shape[0] != 1):
@@ -304,17 +302,106 @@ def get_main_branch_lengths(p, r, mtd, hd, sd):
 
 
 
+#===============================================
+def get_nr_of_branches(p, r, mtd, hd):
+#===============================================
+    """
+    Get the number of branches.
+    Adapted from the old eval_tree script, since the new recursive version is too slow.
+        p:      params object
+        r:      results object
+        mtd:    mtreedata object
+        hd:     clumpdata object
+    """
+
+
+    print("Computing number of branches")
+
+    # store nr of branches here by halo index 
+    nr_of_branches = np.zeros(mtd.descendants[p.z0].shape, dtype=np.int)
+
+    # store the index of the root of this tree
+    # initialize to -1 for checks during treebuilding
+    root = [ -np.ones(mtd.descendants[out].shape, dtype=np.int) for out in range(p.nout) ]
+
+
+    # initialize root
+    for i, desc in enumerate(mtd.descendants[p.z0]):
+        if desc > 0:
+            root[p.z0][i] = i
+
+
+    debind = np.where(mtd.descendants[p.z0]==6100)[0]
+
+    for out in range(p.z0, p.nout):
+        for i, desc in enumerate(mtd.descendants[out]):
+
+            # first propagate the root to mergers in this snapshot
+            # you don't know the order a priori, so need two loops for no bugs
+            if desc < 0:
+                dind = np.where(mtd.descendants[out] == -desc)[0]
+                root[out][i] = root[out][dind]
+
+        for i, desc in enumerate(mtd.descendants[out]):
+            prog = mtd.progenitors[out][i]
+
+            if desc != 0:
+                # propagate root
+                if prog > 0:
+                    # if not jumper
+                    p_snap_ind = out+1
+                    pind = np.where(mtd.descendants[p_snap_ind]==prog)[0]
+                    root[p_snap_ind][pind] = root[out][i]
+                elif prog < 0:
+                    # if jumper:
+                    p_snap_ind = _get_snap_ind(p, mtd.progenitor_outputnrs[out][i])
+                    pind = np.where(mtd.descendants[p_snap_ind]==-prog)[0]
+                    root[p_snap_ind][pind] = root[out][i]
+
+            if desc < 0: # found merger
+                if root[out][i] == root[p.z0][debind]:
+                    print("Found merger for root", root[out][i], "root desc:", mtd.descendants[p.z0][debind])
+                    print("Desc:", desc, "prog", prog)
+                if root[out][i] >= 0: # check that you're not working for a jumper at z = 0
+                    nr_of_branches[root[out][i]] += 1
+
+
+    # now write the results down properly
+    for i, n in enumerate(mtd.npart[p.z0]):
+        # only store halos
+        if mtd.is_halo[p.z0][i]:
+            r.add_nr_branches(nr_of_branches[i]+1, n) # add + 1 for main branch
+
+
+    return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #=====================================================
-def get_nr_of_branches(p, r, mtd, hd, sd):
+def get_nr_of_branches_recursive(p, r, mtd, hd):
 #=====================================================
     """
     Get the number of branches for all haloes at z0
+    This method works, is elegant, but unfortunately too slow to
+    be applicable.
 
         p:      params object
         r:      results object
         mtd:    mtreedata object
         hd:     clumpdata object
-        sd:     snapshotdata object
     """
 
     print("Counting number of branches")
@@ -378,7 +465,7 @@ def get_nr_of_branches(p, r, mtd, hd, sd):
                     # skip this loop iteration over branches
                     continue
 
-                #  print("Adding a branch for clump", prog, "at", p.outputnrs[p_snap_ind], "nbranches=", nbranches+1)
+                print("-- Adding a branch for clump", prog, "at", p.outputnrs[p_snap_ind], "nbranches=", nbranches+1)
                 nbranches = walk_tree_branches(pind, p_snap_ind, nbranches+1)
 
         return nbranches
@@ -401,7 +488,8 @@ def get_nr_of_branches(p, r, mtd, hd, sd):
             desc_is_halo = mtd.is_halo[p.z0][c]
 
             if desc_is_halo:
-                #  print("-----------------------------------------------------") # in case you're printing which branch you're adding
+                print("-----------------------------------------------------") # in case you're printing which branch you're adding
+                print("-- Root:", clump)
                 nbranches = walk_tree_branches(c, p.z0, 0)
                 r.add_nr_branches(nbranches, mtd.npart[p.z0][c])
 

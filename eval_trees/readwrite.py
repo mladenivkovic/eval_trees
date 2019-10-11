@@ -34,7 +34,7 @@ def get_output_info(p, c):
     
     outputlist = []
     for filename in filelist:
-        if "output_" in filename:
+        if filename.startswith('output_'):
             outputlist.append(filename)
 
     

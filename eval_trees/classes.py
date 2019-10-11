@@ -166,12 +166,12 @@ class results():
         self.njumpers = 0   # total number of jumpers
         self.npruned = 0    # number of pruned trees
 
-        self.branch_bins = [100, 500, 1000]                             # particle numbers for bins of main branch lengths
+        self.branch_bins = [100, 500, 1000]                                             # particle numbers for bins of main branch lengths
         npartbins = len(self.branch_bins) + 1
-        self.branchlengths = [np.zeros(1) for b in range(npartbins)]    # lengths of main branches, divided into particle bins
-        self.branchlen_free = [0 for b in range(npartbins)]             # first free index for every bin
-        self.nbranches = [np.zeros(1) for b in range(npartbins)]        # number of branches, divided into particle bins
-        self.nbranch_free = [0 for b in range(npartbins)]               # first free index for every bin
+        self.branchlengths = [np.zeros(1, dtype=np.int) for b in range(npartbins)]      # lengths of main branches, divided into particle bins
+        self.branchlen_free = [0 for b in range(npartbins)]                             # first free index for every bin
+        self.nbranches = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # number of branches, divided into particle bins
+        self.nbranch_free = [0 for b in range(npartbins)]                               # first free index for every bin
         return
 
 

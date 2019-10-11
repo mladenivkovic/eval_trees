@@ -58,14 +58,14 @@ if __name__ == '__main__' :
 
     # get geometry
     tree.get_main_branch_lengths(p, r, mtd, hd, sd)
-    tree.get_nr_of_branches(p, r, mtd, hd, sd)
+    tree.get_nr_of_branches(p, r, mtd, hd)
 
     # get mass evolution
     tree.get_mass_evolution(p, r, mtd, hd, sd)
 
     # quick plot for checking
     #  vs.plot_mass_growth(r)
-    #  vs.plot_geometry(p, r)
+    vs.plot_geometry(p, r)
 
     rw.write_results(p, sd, r)
 

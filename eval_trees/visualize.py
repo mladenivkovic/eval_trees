@@ -78,7 +78,7 @@ def plot_geometry(p, r):
         norm = r.branchlen_free[b]
 
         cut = r.branchlengths[b][:r.branchlen_free[b]]
-        hist, bin_edges = np.histogram(cut, bins = p.noutput, range=(0, p.noutput))
+        hist, bin_edges = np.histogram(cut, bins=p.noutput, range=(0, p.noutput))
         hist = hist/norm
         bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
 
@@ -87,6 +87,9 @@ def plot_geometry(p, r):
             ax.set_ylabel("Main Branch Lengths")
 
 
+    # find max branches for plot boundaries
+    maxbranches = max([np.asscalar(r.nbranches[b][:r.nbranch_free[b]].max()) for b in range(npartbins)])
+
     # plot number of branches
     for b in range(npartbins):
         plotindex += 1
@@ -94,11 +97,11 @@ def plot_geometry(p, r):
         norm = r.nbranch_free[b]
 
         cut = r.nbranches[b][:r.nbranch_free[b]]
-        hist, bin_edges = np.histogram(cut, bins = p.noutput, range=(0, p.noutput))
+        hist, bin_edges = np.histogram(cut, bins=maxbranches, range=(1, maxbranches))
         hist = hist/norm
-        bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
+        bin_left = bin_edges[:-1]
 
-        ax.semilogy(bin_centers, hist)
+        ax.loglog(bin_left, hist)
         if b==0:
             ax.set_ylabel("Nr of Branches")
 
