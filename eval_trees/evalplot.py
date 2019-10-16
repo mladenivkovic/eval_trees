@@ -61,24 +61,24 @@ def main():
     #--------------------
     # Debug
     #--------------------
-    allfiles = ['eval_trees.pkl']
-    labelnames = ['label']
-    suffix = 'debug'
+    #  allfiles = ['eval_trees.pkl']
+    #  labelnames = ['label']
+    #  suffix = 'debug'
 
 
     #--------------------
     # Actually in use
     #--------------------
     #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
-    #  allfiles = ['eval_trees-ntrace-'+str(i)+'.txt' for i in ntrace]
+    #  allfiles = ['eval_trees-ntrace-'+str(i)+'.pkl' for i in ntrace]
     #  labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
     #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
     #  suffix='ntrace'
 
-    #  allfiles = [ 'eval_trees-inclusive-nosaddle.txt',  'eval_trees-exclusive-nosaddle.txt', 'eval_trees-inclusive-saddle.txt', 'eval_trees-exclusive-saddle.txt' ]
-    #  labelnames =[ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
+    allfiles = [ 'eval_trees-inclusive-nosaddle.pkl',  'eval_trees-exclusive-nosaddle.pkl', 'eval_trees-inclusive-saddle.pkl', 'eval_trees-exclusive-saddle.pkl' ]
+    labelnames =[ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
     linestyle = ['--', '--', ':', ':']
-    #  suffix='inc-excl'
+    suffix='inc-excl'
 
     #  linestyle = ['-', ':', '--', '-.', '-', ':', '--', '-.']
     #  linestyle = ['-']*10
@@ -121,8 +121,8 @@ def main():
     fluctmin = 10000
     growthmin = 10000
 
-    nbins_nbranches = 100 # how many bins to use for number of branches; = max number of branches expected
-    #  nbins_nbranches = 1500 # how many bins to use for number of branches; = max number of branches expected
+    #  nbins_nbranches = 100 # how many bins to use for number of branches; = max number of branches expected
+    nbins_nbranches = 1200 # how many bins to use for number of branches; = max number of branches expected
 
     #=============================
     # Read in data
@@ -189,7 +189,7 @@ def main():
             norm = r.branchlen_free[b]
 
             cut = r.branchlengths[b][:r.branchlen_free[b]]
-            hist, bin_edges = np.histogram(cut, bins = p.nout, range=(0, p.nout))
+            hist, bin_edges = np.histogram(cut, bins = p.nout, range=(1, p.nout))
             hist = hist/norm
             mblmin = min(mblmin, hist[hist>0].min())
             #  bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
@@ -206,13 +206,13 @@ def main():
             norm = r.nbranch_free[b]
 
             cut = r.nbranches[b][:r.nbranch_free[b]]
-            hist, bin_edges = np.histogram(cut, bins = nbins_nbranches, range=(0, nbins_nbranches))
+            hist, bin_edges = np.histogram(cut, bins = nbins_nbranches, range=(1, nbins_nbranches))
             hist = hist/norm
             nbranchmin = min(nbranchmin, hist[hist>0].min())
             #  bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
             bins_left = bin_edges[:-1]
 
-            ax.semilogy(bins_left, hist,
+            ax.loglog(bins_left, hist,
                 label = labelnames[f], c=colors[f], ls = linestyle[f],
                 lw=linewidth)
 
@@ -281,13 +281,13 @@ def main():
     binnames = [r'$< 100$ particles', r'$100-500$ particles', r'$500-1000$ particles', r'$> 1000$ particles']
 
     #-------------------------------------
-    # Main Branch Lenght
+    # Main Branch Length
     #-------------------------------------
 
     for b in range(npartbins):
         ax = fig3.axes[b*2]
         ax.grid()
-        ax.set_xlim(-0.5, p.nout)
+        ax.set_xlim(0.9, p.nout)
         ax.set_ylim(mblmin, 0.5)
         ax.set_ylabel(r"$N/N_{tot}$")
         if b == npartbins - 1:
@@ -317,8 +317,8 @@ def main():
     for b in range(npartbins):
         ax = fig3.axes[b*2+1]
         ax.grid()
-        ax.set_xlim(-0.5, nbins_nbranches)
-        ax.set_ylim(nbranchmin, 0.5)
+        ax.set_xlim(0.9, nbins_nbranches)
+        ax.set_ylim(nbranchmin, 1)
         ax.set_ylabel(r"$N/N_{tot}$ ")
         if b == 0:
             ax.legend()
