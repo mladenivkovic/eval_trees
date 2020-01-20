@@ -22,8 +22,10 @@ import visualize as vs
 
 # mass threshold for halos and subhalos
 # default value, you can ignore it
-mthresh_main = 2e11
-mthresh_sub  = 2e11
+#  mthresh_main = 2e11
+#  mthresh_sub  = 2e11
+mthresh_main = 0.
+mthresh_sub  = 0.
 
 
 
@@ -53,7 +55,7 @@ if __name__ == '__main__' :
     
     tree.clean_jumpers(p, r, mtd, sd)
     tree.determine_if_halo(p, mtd, hd)
-    tree.get_mass_thresholds(p, mtd, hd)
+    #  tree.get_mass_thresholds(p, mtd, hd)
     #  tree.count_pruned_trees(p, r, mtd, sd)
 
     # get geometry

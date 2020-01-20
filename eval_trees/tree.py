@@ -331,7 +331,8 @@ def get_nr_of_branches(p, r, mtd, hd):
             root[p.z0][i] = i
 
 
-    debind = np.where(mtd.descendants[p.z0]==6100)[0]
+    # TODO: for debugging
+    # debind = np.where(mtd.descendants[p.z0]==6096)[0]
 
     for out in range(p.z0, p.nout):
         for i, desc in enumerate(mtd.descendants[out]):
@@ -359,9 +360,10 @@ def get_nr_of_branches(p, r, mtd, hd):
                     root[p_snap_ind][pind] = root[out][i]
 
             if desc < 0: # found merger
-                if root[out][i] == root[p.z0][debind]:
-                    print("Found merger for root", root[out][i], "root desc:", mtd.descendants[p.z0][debind])
-                    print("Desc:", desc, "prog", prog)
+                # TODO: for debugging
+                #  if root[out][i] == root[p.z0][debind]:
+                #      print("Found merger for root", root[out][i], "root desc:", mtd.descendants[p.z0][debind])
+                #      print("Desc:", desc, "prog", prog)
                 if root[out][i] >= 0: # check that you're not working for a jumper at z = 0
                     nr_of_branches[root[out][i]] += 1
 
@@ -929,5 +931,4 @@ def _get_snap_ind(p, snap):
     snap:   snapshot number (e.g. 70)
     """
     return np.asscalar(p.noutput - snap)
- 
 
