@@ -17,7 +17,18 @@ def count_pruned_trees(p, r, mtd, sd):
         sd:     snapshotdata object
     """
 
-    pass
+    npruned = 0
+    for out in range(p.z0+1, p.nout):
+        absdescs = np.abs(mtd.descendants[out])
+        absprogs = np.abs(mtd.progenitors[out-1])
+        for i, de in enumerate(absdescs):
+            # if it's a jumper, ignore
+            if de == 0:
+                continue
+            if de not in absprogs:
+                npruned += 1
+
+    return
 
 
 
@@ -189,26 +200,46 @@ def get_mass_thresholds(p, mtd, hd):
         hd:     halodata
     """
 
-    hids = hd.haloid[p.z0]
-    ids = mtd.descendants[p.z0]
-    is_halo = mtd.is_halo[p.z0]
+    # use same as in Avila paper
+    #------------------------------------
 
-    hmasses = mtd.mass[p.z0][is_halo]
-    shmasses = mtd.mass[p.z0][np.logical_not(is_halo)]
+    if p.sussing:
+        hids = hd.haloid[p.z0]
+        ids = mtd.descendants[p.z0]
+        is_halo = mtd.is_halo[p.z0]
 
-    hmasses = np.sort(hmasses) 
-    shmasses = np.sort(shmasses)
-    
-    try:
-        p.mth_main = hmasses[-1000]
-    except IndexError:
-        print("There aren't 1000 haloes in z=0. Setting no mass threshold.")
-        p.mth_main = 0
-    try:
-        p.mth_sub = shmasses[-200]
-    except IndexError:
-        print("There aren't 200 subhaloes in z=0. Setting no mass threshold.")
-        p.mth_sub = 0
+        hmasses = mtd.mass[p.z0][is_halo]
+        shmasses = mtd.mass[p.z0][np.logical_not(is_halo)]
+
+        hmasses = np.sort(hmasses)
+        shmasses = np.sort(shmasses)
+
+        try:
+            p.mth_main = hmasses[-1000]
+        except IndexError:
+            print("There aren't 1000 haloes in z=0. Setting no mass threshold.")
+            p.mth_main = 0
+        try:
+            p.mth_sub = shmasses[-200]
+        except IndexError:
+            print("There aren't 200 subhaloes in z=0. Setting no mass threshold.")
+            p.mth_sub = 0
+
+    else:
+
+        # use fixed number of particles
+        #------------------------------------
+
+        #  mp  = mtd.mass[p.z0][0]/mtd.npart[p.z0][0]
+
+        #  p.mth_sub = 200 * mp
+        #  p.mth_main = 1000 * mp
+
+
+        # use fixed mass
+        #------------------------------------
+        p.mth_sub = 5e11
+        p.mth_main = 5e11
 
 
     print("Main halo mass threshold is: {0:.3e}".format(p.mth_main))
@@ -252,17 +283,14 @@ def get_main_branch_lengths(p, r, mtd, hd, sd):
             desc_is_halo = mtd.is_halo[p.z0][dind]
 
 
-            # skip if threshold is not satisfied
-            if desc_is_halo:
-                # apply mass threshold:
-                #  if mtd.mass[p.z0][dind] < p.mth_main:
-                #      continue
-
-                # don't apply mass threshold:
-                pass
-            else:
-                # only do it for main haloes
-                continue
+            if p.sussing:
+                # skip if threshold is not satisfied
+                if desc_is_halo:
+                    if mtd.mass[p.z0][dind] < p.mth_main:
+                        continue
+                else:
+                    if mtd.mass[p.z0][dind] < p.mth_sub:
+                        continue
 
 
             last_snap = p.z0 # the last snapshot this clump appeared in
@@ -292,6 +320,11 @@ def get_main_branch_lengths(p, r, mtd, hd, sd):
 
             # now put the result in the appropriate bin
             r.add_branch_length(last_snap - p.z0, mtd.npart[p.z0][c])
+
+            if mtd.is_halo[p.z0][c]:
+                r.add_branch_length_main(last_snap - p.z0, mtd.npart[p.z0][c])
+            else:
+                r.add_branch_length_sub(last_snap - p.z0, mtd.npart[p.z0][c])
 
 
     return
@@ -370,9 +403,16 @@ def get_nr_of_branches(p, r, mtd, hd):
 
     # now write the results down properly
     for i, n in enumerate(mtd.npart[p.z0]):
+        r.add_nr_branches(nr_of_branches[i]+1, n) # add + 1 for main branch
         # only store halos
         if mtd.is_halo[p.z0][i]:
-            r.add_nr_branches(nr_of_branches[i]+1, n) # add + 1 for main branch
+            # TODO: mass threshold here?
+            if (not p.sussing) or mtd.mass[p.z0][i] >= p.mth_main:
+                r.add_nr_branches_main(nr_of_branches[i]+1, n) # add + 1 for main branch
+        else:
+            # TODO: mass threshold here?
+            if (not p.sussing) or mtd.mass[p.z0][i] >= p.mth_sub:
+                r.add_nr_branches_sub(nr_of_branches[i]+1, n) # add + 1 for main branch
 
 
     return
@@ -585,8 +625,9 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         if kzero.snap_ind - kplusone.snap_ind == 1: # only do for non-jumpers!
             md = mtd.mass[kplusone.snap_ind][kplusone.ind]
             mp = mtd.mass[kzero.snap_ind][kzero.ind]
-            if md >= p.mth_sub and mp >= p.mth_sub:
-                return True
+            if (kplusone.is_halo and md >= p.mth_main) or (not kplusone.is_halo and md >= p.mth_sub):
+                if (kzero.is_halo and mp >= p.mth_main) or (not kzero.is_halo and mp >= p.mth_sub):
+                    return True
         return False
 
 
@@ -653,6 +694,8 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
         if kzero.main and kminusone.main:
             r.add_halo_fluct(fluct)
+            md = mtd.mass[kzero.snap_ind][kzero.ind]
+            mp = mtd.mass[kminusone.snap_ind][kminusone.ind]
         elif kzero.sub and kminusone.sub:
             r.add_subhalo_fluct(fluct)
         if kzero.any and kminusone.any:
@@ -678,6 +721,8 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
             kplusone:   k+1: descendant of kzero
             kzero:      k_0: clump under investigation
+
+        kplusone is needed for computation over non-adjacent snapshots
         """
 
         # first fill in the missing data in kminusone
@@ -915,6 +960,8 @@ def _calc_mass_growth(md, mp, td, tp):
     """
 
     mass_growth = 2.0/np.pi*np.arctan((md - mp)*(tp + td)/(mp + md)/(td-tp))
+    #  mass_growth = (md - mp)*(tp + td)/(mp + md)/(td-tp)
+    #  mass_growth = (md - mp)/(td-tp)
 
     return mass_growth
 

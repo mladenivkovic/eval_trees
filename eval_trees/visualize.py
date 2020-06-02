@@ -28,7 +28,8 @@ def plot_mass_growth(r):
 
     for arr, n, ax in [(r.mg, r.mg_free, ax1), (r.hmg, r.hmg_free, ax2), (r.shmg, r.shmg_free, ax3)] :
         cut = arr[:n]
-        hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
+        hist, bin_edges = np.histogram(cut, bins=100)
+        #  hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
         hist = hist/norm # normalize histogram
         bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
 
@@ -43,7 +44,8 @@ def plot_mass_growth(r):
     norm = r.mf_free
     for arr, n, ax in [(r.mf, r.mf_free, ax4), (r.hmf, r.hmf_free, ax5), (r.shmf, r.shmf_free, ax6)] :
         cut = arr[:n]
-        hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
+        hist, bin_edges = np.histogram(cut, bins=100)
+        #  hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
         hist = hist/norm # normalize histogram
         bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
         ax.semilogy(bin_centers, hist)

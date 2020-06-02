@@ -51,11 +51,12 @@ if __name__ == '__main__' :
     rw.read_mergertree_data(p, sd, mtd, c)
     rw.read_halo_data(p, hd)
 
+
     cosmo.compute_cosmo_quantities(p, c, sd) # in particular get p.z0 and rho_crit
-    
+
     tree.clean_jumpers(p, r, mtd, sd)
     tree.determine_if_halo(p, mtd, hd)
-    #  tree.get_mass_thresholds(p, mtd, hd)
+    tree.get_mass_thresholds(p, mtd, hd)
     #  tree.count_pruned_trees(p, r, mtd, sd)
 
     # get geometry

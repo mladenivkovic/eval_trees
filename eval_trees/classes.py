@@ -31,6 +31,7 @@ class params():
        self.z0 = 0                   # index of z=0 snapshot
        self.mth_main = mthresh_main  # mass threshold for main haloes
        self.mth_sub  = mthresh_sub   # mass threshold for sub haloes
+       self.sussing = True           # use sussing criteria
        return
 
 
@@ -166,12 +167,23 @@ class results():
         self.njumpers = 0   # total number of jumpers
         self.npruned = 0    # number of pruned trees
 
+
         self.branch_bins = [100, 500, 1000]                                             # particle numbers for bins of main branch lengths
         npartbins = len(self.branch_bins) + 1
+
         self.branchlengths = [np.zeros(1, dtype=np.int) for b in range(npartbins)]      # lengths of main branches, divided into particle bins
         self.branchlen_free = [0 for b in range(npartbins)]                             # first free index for every bin
+        self.branchlengths_sub = [np.zeros(1, dtype=np.int) for b in range(npartbins)]      # lengths of main branches, divided into particle bins
+        self.branchlen_free_sub = [0 for b in range(npartbins)]                             # first free index for every bin
+        self.branchlengths_main = [np.zeros(1, dtype=np.int) for b in range(npartbins)]      # lengths of main branches, divided into particle bins
+        self.branchlen_free_main = [0 for b in range(npartbins)]                             # first free index for every bin
+
         self.nbranches = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # number of branches, divided into particle bins
         self.nbranch_free = [0 for b in range(npartbins)]                               # first free index for every bin
+        self.nbranches_sub = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # number of branches, divided into particle bins
+        self.nbranch_free_sub = [0 for b in range(npartbins)]                               # first free index for every bin
+        self.nbranches_main = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # number of branches, divided into particle bins
+        self.nbranch_free_main = [0 for b in range(npartbins)]                               # first free index for every bin
         return
 
 
@@ -218,6 +230,7 @@ class results():
         self.hmf_free += 1
         return
 
+
     #---------------------------------------
     def add_subhalo_fluct(self, val):
     #---------------------------------------
@@ -228,6 +241,7 @@ class results():
         self.shmf_free += 1
         return
 
+
     #---------------------------------------
     def add_any_fluct(self, val):
     #---------------------------------------
@@ -237,6 +251,8 @@ class results():
         self.mf[self.mf_free] = val
         self.mf_free += 1
         return
+
+
 
 
     #---------------------------------------------
@@ -253,7 +269,6 @@ class results():
             if b == len(self.branch_bins):
                 break
 
-
         if self.branchlen_free[b] == self.branchlengths[b].shape[0]:
             self.branchlengths[b].resize(self.branchlengths[b].shape[0]+10000)
 
@@ -261,6 +276,57 @@ class results():
         self.branchlen_free[b] += 1
 
         return
+
+
+    #---------------------------------------------
+    def add_branch_length_sub(self, val, npart):
+    #---------------------------------------------
+        """
+        Add new branch length, put it in the right bin based on npart
+        for subhaloes only!
+        """
+
+
+        # first find the right bin
+        b = 0
+        while npart > self.branch_bins[b]:
+            b+=1
+            if b == len(self.branch_bins):
+                break
+
+        if self.branchlen_free_sub[b] == self.branchlengths_sub[b].shape[0]:
+            self.branchlengths_sub[b].resize(self.branchlengths_sub[b].shape[0]+10000)
+
+        self.branchlengths_sub[b][self.branchlen_free_sub[b]] = val
+        self.branchlen_free_sub[b] += 1
+
+        return
+
+
+    #---------------------------------------------
+    def add_branch_length_main(self, val, npart):
+    #---------------------------------------------
+        """
+        Add new branch length, put it in the right bin based on npart
+        for mainhaloes only!
+        """
+
+        # first find the right bin
+        b = 0
+        while npart > self.branch_bins[b]:
+            b+=1
+            if b == len(self.branch_bins):
+                break
+
+
+        if self.branchlen_free_main[b] == self.branchlengths_main[b].shape[0]:
+            self.branchlengths_main[b].resize(self.branchlengths_main[b].shape[0]+10000)
+
+        self.branchlengths_main[b][self.branchlen_free_main[b]] = val
+        self.branchlen_free_main[b] += 1
+
+        return
+
 
 
 
@@ -286,6 +352,59 @@ class results():
         self.nbranch_free[b] += 1
 
         return
+
+
+    #---------------------------------------------
+    def add_nr_branches_sub(self, val, npart):
+    #---------------------------------------------
+        """
+        Add new branch length, put it in the right bin based on npart
+        only for subhaloes!
+        """
+
+        # first find the right bin
+        b = 0
+        while npart > self.branch_bins[b]:
+            b+=1
+            if b == len(self.branch_bins):
+                break
+
+
+        if self.nbranch_free_sub[b] == self.nbranches_sub[b].shape[0]:
+            self.nbranches_sub[b].resize(self.nbranches_sub[b].shape[0]+10000)
+
+        self.nbranches_sub[b][self.nbranch_free_sub[b]] = val
+        self.nbranch_free_sub[b] += 1
+
+        return
+
+
+    #---------------------------------------------
+    def add_nr_branches_main(self, val, npart):
+    #---------------------------------------------
+        """
+        Add new branch length, put it in the right bin based on npart
+        only for main haloes!
+        """
+
+        # first find the right bin
+        b = 0
+        while npart > self.branch_bins[b]:
+            b+=1
+            if b == len(self.branch_bins):
+                break
+
+
+        if self.nbranch_free_main[b] == self.nbranches_main[b].shape[0]:
+            self.nbranches_main[b].resize(self.nbranches_main[b].shape[0]+10000)
+
+        self.nbranches_main[b][self.nbranch_free_main[b]] = val
+        self.nbranch_free_main[b] += 1
+
+        return
+
+
+
 
 
 
