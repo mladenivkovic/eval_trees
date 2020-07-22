@@ -29,7 +29,7 @@ params = {
 mpl.rcParams.update(params)
 
 
-
+hist_bins = 200
 
 
 
@@ -59,13 +59,13 @@ def main():
 
     # For no-thresholds
 
-    ntrace = [1, 10, 100, 1000]
-    #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
-    allfiles = ['eval_trees-no-threshold-ntrace-'+str(i)+'.pkl' for i in ntrace]
-    labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
-    #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
-    linestyle = ['-']*10
-    suffix='ntrace'
+    #  ntrace = [1, 10, 100, 1000]
+    #  #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
+    #  allfiles = ['eval_trees-no-threshold-ntrace-'+str(i)+'.pkl' for i in ntrace]
+    #  labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
+    #  #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
+    #  linestyle = ['-']*10
+    #  suffix='ntrace'
 
     #  allfiles = [ 'eval_trees-no-threshold-inclusive-nosaddle.pkl',
     #              'eval_trees-no-threshold-exclusive-nosaddle.pkl',
@@ -77,12 +77,12 @@ def main():
 
 
     #  For sussing thresholds
-    #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
-    #  ntrace = [100, 1000]
-    #  allfiles = ['eval_trees-sussing-criteria-ntrace-'+str(i)+'.pkl' for i in ntrace]
-    #  labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
-    #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
-    #  suffix='ntrace'
+    #  #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
+    ntrace = [100, 1000]
+    allfiles = ['eval_trees-sussing-criteria-ntrace-'+str(i)+'.pkl' for i in ntrace]
+    labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
+    linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
+    suffix='ntrace'
 
     #  allfiles = [ 'eval_trees-sussing-criteria-inclusive-nosaddle.pkl',
     #              'eval_trees-sussing-criteria-exclusive-nosaddle.pkl',
@@ -90,6 +90,7 @@ def main():
     #              'eval_trees-sussing-criteria-exclusive-saddle.pkl' ]
     #  labelnames = [ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
     #  #  linestyle = ['--', '--', ':', ':']
+    #  linestyle = ['-']*10
     #  suffix='inc-excl'
 
 
@@ -146,28 +147,33 @@ def main():
         fig4.add_subplot(npartbins, 2, b+1)
 
     # tree geometry; halo-subhalo divide number of branches
-    # branching-ratio-halo-subhalo.png
+    # number-of-branches-halo-subhalo.png
     fig5 = plt.figure(5, figsize=(15,8))
     for b in range(2*npartbins):
         fig5.add_subplot(npartbins, 2, b+1)
 
     # mass growth and fluctuations, no divide
     # mass-statistics.png
-    fig6 = plt.figure(6, figsize=(12, 6))
-    ax7 = fig6.add_subplot(1, 2, 1)
-    ax8 = fig6.add_subplot(1, 2, 2)
+    fig6 = plt.figure(6, figsize=(6, 12))
+    ax7 = fig6.add_subplot(2, 1, 1)
+    ax8 = fig6.add_subplot(2, 1, 2)
 
     # main brench length for all particle bins
     # main-branch-lengths-all-bins.png
-    fig7 = plt.figure(7, figsize=(12, 6))
-    ax9 = fig7.add_subplot(1, 2, 1)
-    ax10 = fig7.add_subplot(1, 2, 2)
+    fig7 = plt.figure(7, figsize=(6, 12))
+    ax9 = fig7.add_subplot(2, 1, 1)
+    ax10 = fig7.add_subplot(2, 1, 2)
 
     # number of branches for all particle bins
     # number-of-branches-all-bins.png
-    fig8 = plt.figure(8, figsize=(12, 6))
-    ax11 = fig8.add_subplot(1, 2, 1)
-    ax12 = fig8.add_subplot(1, 2, 2)
+    fig8 = plt.figure(8, figsize=(6, 12))
+    ax11 = fig8.add_subplot(2, 1, 1)
+    ax12 = fig8.add_subplot(2, 1, 2)
+
+
+    # branching ratio
+    fig9 = plt.figure(9, figsize=(6, 6))
+    ax13 = fig9.add_subplot(111)
 
 
 
@@ -198,7 +204,7 @@ def main():
         norm = r.mg_free
         for arr, n, ax in [(r.mg, r.mg_free, ax1), (r.hmg, r.hmg_free, ax2), (r.shmg, r.shmg_free, ax3), (r.mg, r.mg_free, ax7)] :
             cut = arr[:n]
-            hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
+            hist, bin_edges = np.histogram(cut, bins=hist_bins, range=(-1, 1))
             hist = hist/norm # normalize histogram
             growthmin = min(growthmin, hist[hist>0].min())
             bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
@@ -214,7 +220,7 @@ def main():
         norm = r.mf_free
         for arr, n, ax in [(r.mf, r.mf_free, ax4), (r.hmf, r.hmf_free, ax5), (r.shmf, r.shmf_free, ax6), (r.mf, r.mf_free, ax8)] :
             cut = arr[:n]
-            hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
+            hist, bin_edges = np.histogram(cut, bins=hist_bins, range=(-1, 1))
             hist = hist/norm # normalize histogram
             fluctmin = min(fluctmin, hist[hist>0].min())
             bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
@@ -226,6 +232,24 @@ def main():
                 alpha = alpha,
                 )
 
+
+
+        
+        # get fraction beta > 0 and std dev of xi
+        beta = r.hmg[:r.hmg_free]
+        fbeta = len(beta[beta>0])/len(beta)
+
+        xi = r.hmf[:r.hmf_free]
+        sigma_xi = np.std(xi)
+
+
+
+
+        print()
+        print("File:", srcfile)
+        print("fbeta:", fbeta)
+        print("sigma xi:", sigma_xi)
+        print()
 
 
 
@@ -424,6 +448,23 @@ def main():
             ls = linestyle[f],
             alpha = alpha,
             )
+
+
+
+
+
+        # plot branching ratio
+        norm = r.dirprog_free
+        cut = r.dirprogs[:r.dirprog_free]
+        hist, edges = np.histogram(cut, bins=int(cut.max()))
+        bins_left = edges[:-1]
+        ax13.semilogy(bins_left, hist/norm,
+            label = labelnames[f],
+            c=colors[f],
+            ls = linestyle[f],
+            alpha = alpha,
+            )
+
 
 
 
@@ -633,7 +674,7 @@ def main():
         axtwin.set_ylabel(binnames[b//2])
 
 
-    figname = 'branching-ratio-halo-subhalo-'+suffix+'.png'
+    figname = 'number-of-branches-halo-subhalo-'+suffix+'.png'
     fig5.tight_layout(pad=0.1, w_pad=2.5, h_pad=1.5)
     fig5.savefig(figname, dpi=300, form='png')
 
@@ -676,7 +717,7 @@ def main():
 
 
     for ax in (ax9, ax10):
-        ax.set_ylabel(r"$N$")
+        ax.set_ylabel(r"$N+1$")
         ax.set_xlim(0.9, p.nout)
         #  ax.set_ylim(mblmin, 0.5)
         ax.grid()
@@ -709,9 +750,8 @@ def main():
     # Number of Branches for all particle bins
     #-----------------------------------------------------------------------
 
-
     for ax in (ax11, ax12):
-        ax.set_ylabel(r"$N$")
+        ax.set_ylabel(r"$N + 1$")
         ax.set_xlim(0.9, nbins_nbranches)
         ax.grid()
         ax.legend()
@@ -725,6 +765,28 @@ def main():
 
     fig8.tight_layout(pad=0.1, w_pad=2.5, h_pad=1.5)
     fig8.savefig(figname, dpi=300, form='png')
+
+
+
+
+
+
+
+    #-----------------------------------------------------------------------
+    # Branching Ratio
+    #-----------------------------------------------------------------------
+
+    ax13.set_ylabel(r"$N/N_{tot}$")
+    #  ax.set_xlim(0.9, nbins_nbranches)
+    ax13.grid()
+    ax13.legend()
+    ax13.set_xlabel("number of direct progenitors", fontsize=16, labelpad=18)
+
+    figname = 'branching-ratio-'+suffix+'.png'
+
+    fig9.tight_layout(pad=0.1, w_pad=2.5, h_pad=1.5)
+    fig9.savefig(figname, dpi=300, form='png')
+
 
 
 

@@ -62,6 +62,7 @@ if __name__ == '__main__' :
     # get geometry
     tree.get_main_branch_lengths(p, r, mtd, hd, sd)
     tree.get_nr_of_branches(p, r, mtd, hd)
+    tree.get_number_direct_progenitors(p, r, mtd, sd)
 
     # get mass evolution
     tree.get_mass_evolution(p, r, mtd, hd, sd)

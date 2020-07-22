@@ -31,7 +31,7 @@ class params():
        self.z0 = 0                   # index of z=0 snapshot
        self.mth_main = mthresh_main  # mass threshold for main haloes
        self.mth_sub  = mthresh_sub   # mass threshold for sub haloes
-       self.sussing = True           # use sussing criteria
+       self.sussing = True          # use sussing criteria
        return
 
 
@@ -171,19 +171,23 @@ class results():
         self.branch_bins = [100, 500, 1000]                                             # particle numbers for bins of main branch lengths
         npartbins = len(self.branch_bins) + 1
 
-        self.branchlengths = [np.zeros(1, dtype=np.int) for b in range(npartbins)]      # lengths of main branches, divided into particle bins
-        self.branchlen_free = [0 for b in range(npartbins)]                             # first free index for every bin
+        self.branchlengths = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # lengths of main branches, divided into particle bins
+        self.branchlen_free = [0 for b in range(npartbins)]                                 # first free index for every bin
         self.branchlengths_sub = [np.zeros(1, dtype=np.int) for b in range(npartbins)]      # lengths of main branches, divided into particle bins
         self.branchlen_free_sub = [0 for b in range(npartbins)]                             # first free index for every bin
-        self.branchlengths_main = [np.zeros(1, dtype=np.int) for b in range(npartbins)]      # lengths of main branches, divided into particle bins
-        self.branchlen_free_main = [0 for b in range(npartbins)]                             # first free index for every bin
+        self.branchlengths_main = [np.zeros(1, dtype=np.int) for b in range(npartbins)]     # lengths of main branches, divided into particle bins
+        self.branchlen_free_main = [0 for b in range(npartbins)]                            # first free index for every bin
 
-        self.nbranches = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # number of branches, divided into particle bins
-        self.nbranch_free = [0 for b in range(npartbins)]                               # first free index for every bin
+        self.nbranches = [np.zeros(1, dtype=np.int) for b in range(npartbins)]              # number of branches, divided into particle bins
+        self.nbranch_free = [0 for b in range(npartbins)]                                   # first free index for every bin
         self.nbranches_sub = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # number of branches, divided into particle bins
         self.nbranch_free_sub = [0 for b in range(npartbins)]                               # first free index for every bin
-        self.nbranches_main = [np.zeros(1, dtype=np.int) for b in range(npartbins)]          # number of branches, divided into particle bins
-        self.nbranch_free_main = [0 for b in range(npartbins)]                               # first free index for every bin
+        self.nbranches_main = [np.zeros(1, dtype=np.int) for b in range(npartbins)]         # number of branches, divided into particle bins
+        self.nbranch_free_main = [0 for b in range(npartbins)]                              # first free index for every bin
+
+
+        self.dirprogs = np.zeros(1)         # number of direct progenitors
+        self.dirprog_free = 0               # last used index for direct progenitors
         return
 
 
@@ -405,6 +409,21 @@ class results():
 
 
 
+
+    #---------------------------------------------
+    def add_dirprog(self, val):
+    #---------------------------------------------
+        """
+        Add number of direct progenitors of a halo in this snapshot
+        """
+
+        if self.dirprog_free == self.dirprogs.shape[0]:
+            self.dirprogs.resize(self.dirprogs.shape[0]+10000)
+
+        self.dirprogs[self.dirprog_free] = val
+        self.dirprog_free += 1
+
+        return
 
 
 

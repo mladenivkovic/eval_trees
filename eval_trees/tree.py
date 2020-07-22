@@ -238,8 +238,8 @@ def get_mass_thresholds(p, mtd, hd):
 
         # use fixed mass
         #------------------------------------
-        p.mth_sub = 5e11
-        p.mth_main = 5e11
+        p.mth_sub = 3e11
+        p.mth_main = 3e11
 
 
     print("Main halo mass threshold is: {0:.3e}".format(p.mth_main))
@@ -319,7 +319,8 @@ def get_main_branch_lengths(p, r, mtd, hd, sd):
                 prog = mtd.progenitors[p_snap_ind][pind]
 
             # now put the result in the appropriate bin
-            r.add_branch_length(last_snap - p.z0, mtd.npart[p.z0][c])
+            if (not p.sussing) or mtd.mass[p.z0][c] > p.mth_main:
+                r.add_branch_length(last_snap - p.z0, mtd.npart[p.z0][c])
 
             if mtd.is_halo[p.z0][c]:
                 r.add_branch_length_main(last_snap - p.z0, mtd.npart[p.z0][c])
@@ -413,6 +414,55 @@ def get_nr_of_branches(p, r, mtd, hd):
             # TODO: mass threshold here?
             if (not p.sussing) or mtd.mass[p.z0][i] >= p.mth_sub:
                 r.add_nr_branches_sub(nr_of_branches[i]+1, n) # add + 1 for main branch
+
+
+    return
+
+
+
+
+
+
+
+
+#=====================================================
+def get_number_direct_progenitors(p, r, mtd, sd):
+#=====================================================
+    """
+    Get the number of direct progenitors for every halo
+    satisfying the mass threshold 
+
+        p:      params object
+        r:      results object
+        mtd:    mtreedata object
+        sd:     snapshotdata object
+    """
+
+    print("Computing number of direct progenitors")
+
+
+    for snap in range(p.z0, p.nout):
+
+        # only include up to redshift 2
+        if sd.redshift[snap] > 2.0:
+            continue
+
+        for d, desc in enumerate(mtd.descendants[snap]):
+
+            #  if not mtd.is_halo[snap][d]:
+            #      continue
+
+            if desc <= 0:
+                continue
+
+            #  if mtd.mass[snap][d] >= p.mth_main:
+
+            if mtd.progenitors[snap][d] == 0:
+                dirprogs = 0
+            else:
+                dirprogs = len(np.where(mtd.descendants[snap] == -desc)[0]) + 1 # + 1 for main progenitor
+
+            r.add_dirprog(dirprogs)
 
 
     return
@@ -625,9 +675,8 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         if kzero.snap_ind - kplusone.snap_ind == 1: # only do for non-jumpers!
             md = mtd.mass[kplusone.snap_ind][kplusone.ind]
             mp = mtd.mass[kzero.snap_ind][kzero.ind]
-            if (kplusone.is_halo and md >= p.mth_main) or (not kplusone.is_halo and md >= p.mth_sub):
-                if (kzero.is_halo and mp >= p.mth_main) or (not kzero.is_halo and mp >= p.mth_sub):
-                    return True
+            if mp >= p.mth_main and md >= p.mth_main:
+                return True
         return False
 
 
@@ -694,9 +743,7 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
         if kzero.main and kminusone.main:
             r.add_halo_fluct(fluct)
-            md = mtd.mass[kzero.snap_ind][kzero.ind]
-            mp = mtd.mass[kminusone.snap_ind][kminusone.ind]
-        elif kzero.sub and kminusone.sub:
+        if kzero.sub and kminusone.sub:
             r.add_subhalo_fluct(fluct)
         if kzero.any and kminusone.any:
             # if main is true for one, the any flag will be set anyhow
@@ -770,12 +817,8 @@ def get_mass_evolution(p, r, mtd, cd, sd):
             # clump = 0 is removed jumper;
             # clump < 0 is merger; we're only taking main branch here
 
-            is_subhalo = not mtd.is_halo[p.z0][c]
-            m = mtd.mass[p.z0][c]
-
-            if m > p.mth_main or (is_subhalo and m > p.mth_sub):
-                kzero = masscompdata(c, p.z0) # initialize k_zero
-                walk_tree_main_branch(masscompdata(), kzero)
+            kzero = masscompdata(c, p.z0) # initialize k_zero
+            walk_tree_main_branch(masscompdata(), kzero)
 
 
     return
