@@ -109,3 +109,34 @@ def plot_geometry(p, r):
 
 
     plt.show()
+
+
+
+
+#==============================
+def plot_displacements(r):
+#==============================
+    """
+    r: results object
+    """
+
+
+    fig = plt.figure(figsize=myfigsize)
+    ax1 = fig.add_subplot(111)
+    ax1.set_ylabel("Displacements")
+
+    norm = r.displacement_free
+
+    cut = r.displacements[:r.displacement_free]
+    hist, bin_edges = np.histogram(cut, bins=100)
+    hist = hist/norm # normalize histogram
+    bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
+
+    ax1.semilogy(bin_centers, hist)
+
+    plt.show()
+
+    
+
+
+

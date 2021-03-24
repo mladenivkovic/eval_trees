@@ -70,6 +70,7 @@ if __name__ == '__main__' :
     # quick plot for checking
     #  vs.plot_mass_growth(r)
     #  vs.plot_geometry(p, r)
+    #  vs.plot_displacements(r)
 
     rw.write_results(p, sd, r)
 

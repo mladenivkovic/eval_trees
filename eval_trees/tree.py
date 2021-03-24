@@ -2,6 +2,7 @@
 
 
 import numpy as np
+from cosmo import compute_R200
 
 
 
@@ -633,8 +634,36 @@ def get_mass_evolution(p, r, mtd, cd, sd):
             self.is_halo = None
             if ind is not None and snap_ind is not None:
                 self.is_halo = mtd.is_halo[snap_ind][ind]
+            else:
+                self.is_halo = False
             return
 
+
+    #-------------------------------------------
+    def calc_halo_displacement(kplusone, kzero):
+    #-------------------------------------------
+        """
+        Whether to calculate the displacement for the halo population
+        """
+
+        #  M > 10^12 M_Sol / h
+        mthresh_srisawat = 1e12 / 0.704
+
+        if sd.redshift[kzero.snap_ind] <= 2.:
+            # version 1:
+            #  if kplusone.is_halo and kzero.is_halo:
+            #      if (kzero.snap_ind - kplusone.snap_ind == 1): # only non-jumpers
+            #
+            #          md = mtd.mass[kplusone.snap_ind][kplusone.ind]
+            #          mp = mtd.mass[kzero.snap_ind][kzero.ind]
+            #
+            #          if (md > mthresh_srisawat) and (mp > mthresh_srisawat):
+            #              return True
+
+            # version 2:
+            return calc_halo(kplusone, kzero)
+
+        return False
 
 
     #------------------------------------
@@ -723,6 +752,33 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         return
 
 
+    #-----------------------------------------
+    def get_displacement(kplusone, kzero):
+    #-----------------------------------------
+        """
+        Compute the mass growth between k+1 and k_0, if applicable
+        store results directly
+        """
+
+        mB = mtd.mass[kplusone.snap_ind][kplusone.ind]
+        mA = mtd.mass[kzero.snap_ind][kzero.ind]
+        xB = mtd.x[kplusone.snap_ind][kplusone.ind]
+        xA = mtd.x[kzero.snap_ind][kzero.ind]
+        vB = mtd.v[kplusone.snap_ind][kplusone.ind]
+        vA = mtd.v[kzero.snap_ind][kzero.ind]
+        tB = sd.times[kplusone.snap_ind]
+        tA = sd.times[kzero.snap_ind]
+        rhoCB = sd.rho_crit[kplusone.snap_ind]
+        rhoCA = sd.rho_crit[kzero.snap_ind]
+
+        # Follow only  main branch
+        if calc_halo_displacement(kplusone, kzero):
+            delta_r = _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB)
+            r.add_halo_displacement(delta_r)
+
+        return
+
+
 
 
 
@@ -790,6 +846,8 @@ def get_mass_evolution(p, r, mtd, cd, sd):
             # you've reached the leaf
             return
 
+        pind = np.asscalar(pind)
+
 
         kminusone = masscompdata(pind, p_snap_ind)
 
@@ -799,6 +857,9 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
         # compute mass growth fluctuation of k0 and if applicable
         get_mass_fluct(kzero, kminusone)
+
+        # compute displacement statistic
+        get_displacement(kzero, kminusone)
 
         # recurse
         walk_tree_main_branch(kzero, kminusone)
@@ -1007,6 +1068,34 @@ def _calc_mass_growth(md, mp, td, tp):
     #  mass_growth = (md - mp)/(td-tp)
 
     return mass_growth
+
+
+
+#=====================================================================
+def _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB):
+#=====================================================================
+    """
+    calculate the displacement for halo A and B 
+    """
+    r200A = compute_R200(mA, rhoCA)
+    r200B = compute_R200(mB, rhoCB)
+    dt = tB - tA
+
+
+    vector_quantity = xB - xA - 0.5 * (vB + vA) * dt
+    abs_quantity = vector_quantity[0]**2 + vector_quantity[1]**2 + vector_quantity[2]**2
+    abs_quantity = np.sqrt(abs_quantity)
+
+    vec_vel = (vA + vB)*dt
+    vec_abs = vec_vel[0]**2 + vec_vel[1]**2 + vec_vel[2]**2
+    vec_abs = np.sqrt(vec_abs)
+
+    denominator = 0.5 * (r200A + r200B + vec_abs)
+
+    delta = abs_quantity / denominator
+
+    return delta
+
 
     
 

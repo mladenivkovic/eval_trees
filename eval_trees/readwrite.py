@@ -178,12 +178,18 @@ def read_mergertree_data(p, sd, mtd, c):
             mtd.progenitor_outputnrs[output] = fulldata[:]['prog_outnr'] 
             mtd.mass[output] = fulldata[:]['mass']
             mtd.npart[output] = fulldata[:]['npart']
-            mtd.x[output] = fulldata[:]['x']
-            mtd.y[output] = fulldata[:]['y']
-            mtd.z[output] = fulldata[:]['z']
-            mtd.vx[output] = fulldata[:]['vx']
-            mtd.vy[output] = fulldata[:]['vy']
-            mtd.vz[output] = fulldata[:]['vz']
+            if fulldata[:]['x'].shape[0] > 0:
+                # early snapshots may have no haloes, we still go through it
+                x = np.vstack(np.array((fulldata[:]['x'], fulldata[:]['y'], fulldata[:]['z'])).T)
+                mtd.x[output] = x
+                #  mtd.y[output] = fulldata[:]['y']
+                #  mtd.z[output] = fulldata[:]['z']
+            if fulldata[:]['vx'].shape[0] > 0:
+                # early snapshots may have no haloes, we still go through it
+                v = np.vstack(np.array((fulldata[:]['vx'], fulldata[:]['vy'], fulldata[:]['vz'])).T)
+                mtd.v[output] = v
+                #  mtd.vy[output] = fulldata[:]['vy']
+                #  mtd.vz[output] = fulldata[:]['vz']
 
             outcount += 1
 
@@ -243,11 +249,13 @@ def read_mergertree_data(p, sd, mtd, c):
         mtd.mass = mtd.mass[:outcount]
         mtd.npart = mtd.npart[:outcount]
         mtd.x = mtd.x[:outcount]
-        mtd.y = mtd.y[:outcount]
-        mtd.z = mtd.z[:outcount]
-        mtd.vx = mtd.vx[:outcount]
-        mtd.vy = mtd.vy[:outcount]
-        mtd.vz = mtd.vz[:outcount]
+        # deprecated: storing 3D data in 2D array now
+        #  mtd.y = mtd.y[:outcount]
+        #  mtd.z = mtd.z[:outcount]
+        mtd.v = mtd.v[:outcount]
+        # deprecated: storing 3D data in 2D array now
+        #  mtd.vy = mtd.vy[:outcount]
+        #  mtd.vz = mtd.vz[:outcount]
         
         p.nout = outcount
 
@@ -261,15 +269,21 @@ def read_mergertree_data(p, sd, mtd, c):
     sd.unit_l /= c.Mpc
     sd.unit_t /= c.Gyr
 
+    # sanity check: typical peculiar velocity of galaxy clusters ~ few 100 km/s
+    #  sd.unit_l /= 1e5 # km
+    #  sd.unit_t /= 1. #s
+
     # transform units to physical units
     for i in range(len(mtd.descendants)):
         mtd.x[i] *= sd.unit_l[i] # only transform later when needed; Need to check for periodicity first!
-        mtd.y[i] *= sd.unit_l[i]
-        mtd.z[i] *= sd.unit_l[i]
+        # deprecated: storing 3D data in 2D array now
+        #  mtd.y[i] *= sd.unit_l[i]
+        #  mtd.z[i] *= sd.unit_l[i]
         mtd.mass[i] *= sd.unit_m[i]
-        mtd.vx[i] *= sd.unit_l[i]/sd.unit_t[i]
-        mtd.vy[i] *= sd.unit_l[i]/sd.unit_t[i]
-        mtd.vz[i] *= sd.unit_l[i]/sd.unit_t[i]
+        mtd.v[i] *= sd.unit_l[i] / sd.unit_t[i]
+        # deprecated: storing 3D data in 2D array now
+        #  mtd.vy[i] *= sd.unit_l[i]/sd.unit_t[i]
+        #  mtd.vz[i] *= sd.unit_l[i]/sd.unit_t[i]
 
 
     # collect garbage

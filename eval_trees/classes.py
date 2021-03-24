@@ -82,11 +82,11 @@ class mtreedata():
         self.mass                    = [np.zeros(1) for i in range(par.noutput)] # descendant mass
         self.npart                   = [np.zeros(1) for i in range(par.noutput)] # descendant npart exclusive
         self.x                       = [np.zeros(1) for i in range(par.noutput)] # descendant x
-        self.y                       = [np.zeros(1) for i in range(par.noutput)] # descendant y
-        self.z                       = [np.zeros(1) for i in range(par.noutput)] # descendant z
-        self.vx                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel x
-        self.vy                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel y
-        self.vz                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel z
+        #  self.y                       = [np.zeros(1) for i in range(par.noutput)] # descendant y
+        #  self.z                       = [np.zeros(1) for i in range(par.noutput)] # descendant z
+        self.v                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel x
+        #  self.vy                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel y
+        #  self.vz                      = [np.zeros(1) for i in range(par.noutput)] # descendant vel z
 
         self.is_halo                 = [np.zeros(1) for i in range(par.noutput)] # descendant is halo or not
         self.nhalosmax = 0
@@ -185,6 +185,8 @@ class results():
         self.nbranches_main = [np.zeros(1, dtype=np.int) for b in range(npartbins)]         # number of branches, divided into particle bins
         self.nbranch_free_main = [0 for b in range(npartbins)]                              # first free index for every bin
 
+        self.displacements = np.zeros(1, dtype=np.float)        # all displacement statistics
+        self.displacement_free = 0                              # first free index
 
         self.dirprogs = np.zeros(1)         # number of direct progenitors
         self.dirprog_free = 0               # last used index for direct progenitors
@@ -406,6 +408,22 @@ class results():
         self.nbranch_free_main[b] += 1
 
         return
+
+
+
+
+    #---------------------------------------
+    def add_halo_displacement(self, val):
+    #---------------------------------------
+        if self.displacement_free == self.displacements.shape[0]:
+            self.displacements.resize(self.displacements.shape[0]+10000)
+
+        self.displacements[self.displacement_free] = val
+        self.displacement_free += 1
+        return
+
+
+
 
 
 

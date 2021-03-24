@@ -52,7 +52,7 @@ def compute_cosmo_quantities(p, c, sd):
     #-----------------------
     # get physical units
     #-----------------------
-    alpha = c.H0 * 1e5/c.Mpc*c.Gyr
+    alpha = c.H0 * 1e5/c.Mpc*c.Gyr # 1e5: cm->km
 
     sd.times *= 1.0/alpha # get sd.times in Gyrs: sd.times were calculated in units of H_0
 
@@ -61,8 +61,9 @@ def compute_cosmo_quantities(p, c, sd):
     sd.times += timestart
 
 
-    H *= alpha # get H in Gyrs^-1
-    sd.rho_crit = 3 * H**2 / (8 * np.pi * c.G)    
+    sd.H *= alpha # get H in Gyrs^-1
+    # sanity check: H0 in units [Gyrs^-1] = 0.07195/Gyr
+    sd.rho_crit = 3 * sd.H**2 / (8 * np.pi * c.G)    
     
     
     return
@@ -142,4 +143,10 @@ def friedman(axp_min, c):
 
 
 
+def compute_R200(M, rhoC):
+    """
+    Compute R200, radius that contains 200 times the
+    critical density, for given halo mass M
+    """
 
+    return (0.75 / np.pi * M/ rhoC)**(1./3)
