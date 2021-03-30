@@ -666,6 +666,31 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         return False
 
 
+    #-------------------------------------------
+    def calc_dlogM(kplusone, kzero):
+    #-------------------------------------------
+        """
+        Whether to calculate the displacement for the halo population
+        """
+
+
+        if (kzero.snap_ind - kplusone.snap_ind == 1): # only non-jumpers
+
+            md = mtd.mass[kplusone.snap_ind][kplusone.ind]
+            mp = mtd.mass[kzero.snap_ind][kzero.ind]
+
+            if p.sussing:
+                #  M > 10^12 M_Sol / h
+                mthresh_srisawat = 1e12 / 0.704
+                if (md > mthresh_srisawat) and (mp > mthresh_srisawat):
+                    return True
+            else:
+                if mp >= p.mth_main and md >= p.mth_main:
+                    return True
+
+        return False
+
+
     #------------------------------------
     def calc_halo(kplusone, kzero):
     #------------------------------------
@@ -738,6 +763,8 @@ def get_mass_evolution(p, r, mtd, cd, sd):
                 r.add_halo_growth(mgrowth)
                 kzero.massgrowth = mgrowth
             kzero.main = True
+            #  dlogM = _calc_dlogMdlogt(md, mp, td, tp)
+            #  r.add_halo_logM(dlogM)
 
         elif calc_subhalo(kplusone, kzero):
             if kzero.massgrowth is not None: # 'any' caught it
@@ -746,8 +773,14 @@ def get_mass_evolution(p, r, mtd, cd, sd):
                 mgrowth = _calc_mass_growth(md, mp, td, tp)
                 r.add_subhalo_growth(mgrowth)
                 kzero.massgrowth = mgrowth
+            #  dlogM = _calc_dlogMdlogt(md, mp, td, tp)
+            #  r.add_subhalo_logM(dlogM)
 
             kzero.sub = True
+
+        if calc_dlogM(kplusone, kzero):
+            dlogM = _calc_dlogMdlogt(md, mp, td, tp)
+            r.add_any_logM(dlogM)
 
         return
 
@@ -1068,6 +1101,20 @@ def _calc_mass_growth(md, mp, td, tp):
     #  mass_growth = (md - mp)/(td-tp)
 
     return mass_growth
+
+#==========================================================
+def _calc_dlogMdlogt(md, mp, td, tp):
+#==========================================================
+    """
+    Calculate the logarithmic mass growth dlog M/dlog t
+    md, td: descendant mass/time
+    mp, tp: progenitor mass/time
+    """
+
+    mass_growth = (md - mp)*(tp + td)/(mp + md)/(td-tp)
+
+    return mass_growth
+
 
 
 

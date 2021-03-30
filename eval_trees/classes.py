@@ -31,7 +31,7 @@ class params():
        self.z0 = 0                   # index of z=0 snapshot
        self.mth_main = mthresh_main  # mass threshold for main haloes
        self.mth_sub  = mthresh_sub   # mass threshold for sub haloes
-       self.sussing = True          # use sussing criteria
+       self.sussing = False          # use sussing criteria
        return
 
 
@@ -160,6 +160,13 @@ class results():
         self.mg_free = 0            # last used index for mg
         self.mf = np.zeros(1)       # all mass fluctuation
         self.mf_free = 0            # last used index for mf
+
+        self.hlogM = np.zeros(1)      # halo dlogM/dlogt
+        self.hlogM_free = 0           # last used index for hlogM
+        self.shlogM = np.zeros(1)     # subhalo dlogM/dlogt
+        self.shlogM_free = 0          # last used index for shlogM
+        self.logM = np.zeros(1)       # all dlogM/dlogt
+        self.logM_free = 0            # last used index for logM
 
         self.mbl = None     # main branch length
         self.nbr = None     # number of branches
@@ -441,6 +448,40 @@ class results():
         self.dirprogs[self.dirprog_free] = val
         self.dirprog_free += 1
 
+        return
+
+
+
+
+
+    #---------------------------------------
+    def add_halo_logM(self, val):
+    #---------------------------------------
+        if self.hlogM_free == self.hlogM.shape[0]:
+            self.hlogM.resize(self.hlogM.shape[0]+10000)
+
+        self.hlogM[self.hlogM_free] = val
+        self.hlogM_free += 1
+        return
+
+    #---------------------------------------
+    def add_subhalo_logM(self, val):
+    #---------------------------------------
+        if self.shlogM_free == self.shlogM.shape[0]:
+            self.shlogM.resize(self.shlogM.shape[0]+10000)
+
+        self.shlogM[self.shlogM_free] = val
+        self.shlogM_free += 1
+        return
+
+    #---------------------------------------
+    def add_any_logM(self, val):
+    #---------------------------------------
+        if self.logM_free == self.logM.shape[0]:
+            self.logM.resize(self.logM.shape[0]+10000)
+
+        self.logM[self.logM_free] = val
+        self.logM_free += 1
         return
 
 
