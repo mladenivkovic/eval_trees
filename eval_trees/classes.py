@@ -31,7 +31,7 @@ class params():
        self.z0 = 0                   # index of z=0 snapshot
        self.mth_main = mthresh_main  # mass threshold for main haloes
        self.mth_sub  = mthresh_sub   # mass threshold for sub haloes
-       self.sussing = False          # use sussing criteria
+       self.sussing = True          # use sussing criteria
        return
 
 
