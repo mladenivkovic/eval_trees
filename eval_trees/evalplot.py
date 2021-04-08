@@ -11,14 +11,14 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import pickle
 
+# py files in this directory
+from tools_for_plotting import file_selection, print_evaltrees_parameters
 
+#-----------------------------------------
 # set which dataset you want to plot
+#-----------------------------------------
+from tools_for_plotting import plot_selection # set it in tools_for_plotting.py !!
 
-do_debug = True
-do_sussing_ntrace = False
-do_sussing_incexcl = False
-do_my_threshold_ntrace = False
-do_my_threshold_incexcl = False
 
 # set which plots to make
 plot_mass_growth_halo_subhalo = True
@@ -53,6 +53,12 @@ mpl.rcParams.update(params)
 
 
 hist_bins = 200
+colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#e377c2', '#bcbd22', '#17becf']
+alpha = 0.6
+
+# how many particle bins do we have for tree geometry?
+binnames = [r'$< 100$ particles', r'$100-500$ particles', r'$500-1000$ particles', r'$> 1000$ particles']
+npartbins = len(binnames)
 
 
 
@@ -62,91 +68,14 @@ hist_bins = 200
 def main():
 #===================
     
-
-    #================================
-    # Select files
-    #================================
-
-    #--------------------
-    # Debug
-    #--------------------
-    if do_debug:
-        allfiles = ['eval_trees-sussing-criteria.pkl']
-        labelnames = ['label']
-        suffix = 'debug'
-        linestyle = ['-']
-
-
-    #--------------------
-    # Actually in use
-    #--------------------
-
-    # For no-thresholds
-
-    elif do_my_threshold_ntrace:
-        ntrace = [1, 10, 100, 1000]
-        #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
-        allfiles = ['eval_trees-no-threshold-ntrace-'+str(i)+'.pkl' for i in ntrace]
-        labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
-        #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
-        linestyle = ['-']*10
-        suffix='ntrace'
-
-    elif do_my_threshold_incexcl:
-        allfiles = [ 'eval_trees-no-threshold-inclusive-nosaddle.pkl',
-                    'eval_trees-no-threshold-exclusive-nosaddle.pkl',
-                    'eval_trees-no-threshold-inclusive-saddle.pkl',
-                    'eval_trees-no-threshold-exclusive-saddle.pkl' ]
-        labelnames = [ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
-        linestyle = ['-', '--', '-', '--']
-        suffix='inc-excl'
-
-
-    #  For sussing thresholds
-    elif do_sussing_ntrace:
-        #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
-        ntrace = [100, 1000]
-        allfiles = ['eval_trees-sussing-criteria-ntrace-'+str(i)+'.pkl' for i in ntrace]
-        labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
-        linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
-        suffix='ntrace'
-
-
-    elif do_sussing_incexcl:
-        allfiles = [ 'eval_trees-sussing-criteria-inclusive-nosaddle.pkl',
-                    'eval_trees-sussing-criteria-exclusive-nosaddle.pkl',
-                    'eval_trees-sussing-criteria-inclusive-saddle.pkl',
-                    'eval_trees-sussing-criteria-exclusive-saddle.pkl' ]
-        labelnames = [ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
-        #  linestyle = ['--', '--', ':', ':']
-        linestyle = ['-']*10
-        suffix='inc-excl'
-
-    else:
-        print("You need to select for which dataset I'm plotting")
-        quit()
-
-
-
-
-
-
-    #  linestyle = ['-', ':', '--', '-.', '-', ':', '--', '-.']
-    #  linestyle = ['-']*10
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#e377c2', '#bcbd22', '#17becf']
-
-    # how many particle bins do we have for tree geometry?
-    binnames = [r'$< 100$ particles', r'$100-500$ particles', r'$500-1000$ particles', r'$> 1000$ particles']
-    npartbins = len(binnames)
-
+    allfiles, labelnames, suffix, linestyle = file_selection(plot_selection)
+    print_evaltrees_parameters(allfiles[0])
 
     # columns for legends
     if len(allfiles) == 4:
         ncols = 2
     else:
         ncols = 3
-
-    alpha = 0.6
 
 
     #==========================

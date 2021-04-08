@@ -412,7 +412,10 @@ def write_results(p, sd, r):
     if p.sussing:
         fname = 'eval_trees-sussing-criteria.pkl'
     else:
-        fname = 'eval_trees-no-threshold.pkl'
+        if p.use_npart_threshold:
+            fname = 'eval_trees-npart-threshold-{0:d}.pkl'.format(p.npart_thresh_main)
+        else:
+            fname = 'eval_trees-no-threshold.pkl'
     f = open(fname, 'wb')
     pickle.dump(dumplist, f)
     f.close()

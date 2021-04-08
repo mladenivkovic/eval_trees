@@ -4,6 +4,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 
+#------------------------------------------
+#
+# Visualisation routines for evaltrees.py,
+# not for evalplot.py or evaljumpers.py!!!
+#
+#------------------------------------------
+
+
 myfigsize=(20,12)
 nbins = 50
 

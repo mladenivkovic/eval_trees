@@ -13,15 +13,16 @@ import matplotlib.pyplot as plt
 import pickle
 
 
+# py files in this directory
+from tools_for_plotting import file_selection, print_evaltrees_parameters
+
+#-----------------------------------------
 # set which dataset you want to plot
-
-do_debug = False
-do_sussing_ntrace = False
-do_sussing_incexcl = False
-do_my_threshold_ntrace = True
-do_my_threshold_incexcl = False
+#-----------------------------------------
+from tools_for_plotting import plot_selection # set it in tools_for_plotting.py !!
 
 
+# select which plots to make
 plot_jumping_distance = True
 plot_mass_statistics = True
 plot_with_different_mass_thresholds = True
@@ -50,81 +51,7 @@ mpl.rcParams.update(params)
 
 hist_bins = 200
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#e377c2', '#bcbd22', '#17becf']
-
-
-
-
-def file_selection():
-    """
-    Select file and plot parameters
-    """
-
-    #================================
-    # Select files
-    #================================
-
-    #--------------------
-    # Debug
-    #--------------------
-    if do_debug:
-        allfiles = ['eval_trees-sussing-criteria.pkl']
-        labelnames = ['label']
-        suffix = 'debug'
-        linestyle = ['-']
-
-
-    #--------------------
-    # Actually in use
-    #--------------------
-
-    # For no-thresholds
-
-    elif do_my_threshold_ntrace:
-        #  ntrace = [1, 10, 100, 1000]
-        ntrace = [1, 100, 200, 1000]
-        #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
-        allfiles = ['eval_trees-no-threshold-ntrace-'+str(i)+'.pkl' for i in ntrace]
-        labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
-        #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
-        linestyle = ['-']*10
-        suffix='ntrace'
-
-    elif do_my_threshold_incexcl:
-        allfiles = [ 'eval_trees-no-threshold-inclusive-nosaddle.pkl',
-                    'eval_trees-no-threshold-exclusive-nosaddle.pkl',
-                    'eval_trees-no-threshold-inclusive-saddle.pkl',
-                    'eval_trees-no-threshold-exclusive-saddle.pkl' ]
-        labelnames = [ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
-        linestyle = ['-', '--', '-', '--']
-        suffix='inc-excl'
-
-
-    #  For sussing thresholds
-    elif do_sussing_ntrace:
-        #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
-        ntrace = [100, 1000]
-        allfiles = ['eval_trees-sussing-criteria-ntrace-'+str(i)+'.pkl' for i in ntrace]
-        labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
-        linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
-        suffix='ntrace'
-
-
-    elif do_sussing_incexcl:
-        allfiles = [ 'eval_trees-sussing-criteria-inclusive-nosaddle.pkl',
-                    'eval_trees-sussing-criteria-exclusive-nosaddle.pkl',
-                    'eval_trees-sussing-criteria-inclusive-saddle.pkl',
-                    'eval_trees-sussing-criteria-exclusive-saddle.pkl' ]
-        labelnames = [ 'inclusive loosely bound', 'exclusive loosely bound', 'inclusive strictly bound', 'exclusive strictly bound' ]
-        #  linestyle = ['--', '--', ':', ':']
-        linestyle = ['-']*10
-        suffix='inc-excl'
-
-    else:
-        print("You need to select for which dataset I'm plotting")
-        quit()
-
-
-    return allfiles, labelnames, suffix, linestyle
+alpha = 0.6
 
 
 
@@ -135,15 +62,13 @@ def file_selection():
 def main():
 #===================
     
-    allfiles, labelnames, suffix, linestyle = file_selection()
+    allfiles, labelnames, suffix, linestyle = file_selection(plot_selection)
 
     # columns for legends
     if len(allfiles) == 4:
         ncols = 2
     else:
         ncols = 3
-
-    alpha = 0.6
 
 
     if plot_jumping_distance:
@@ -433,16 +358,16 @@ def main():
 
 
             # Generate title and filename
-            if do_debug:
+            if plot_selection.do_debug:
                 title = "low res simulation for debugging and dev"
                 filename = "jumper_results_with_mass_thresholds-debugging.png"
-            elif do_sussing_ntrace:
+            elif plot_selection.do_sussing_ntrace:
                 print("ERROR: TODO: NEED TO GENERATE FILENAME AND FIGTITLE")
                 quit(1)
-            elif do_sussing_incexcl:
+            elif plot_selection.do_sussing_incexcl:
                 print("ERROR: TODO: NEED TO GENERATE FILENAME AND FIGTITLE")
                 quit(1)
-            elif do_my_threshold_ntrace:
+            elif plot_selection.do_my_threshold_ntrace:
                 nmb = [int(s) for s in srcfile[:-4].split('-') if s.isdigit()]
                 if len(nmb) != 1:
                     raise ValueError("got len(nmb) != 1. nmb=", nmb)
@@ -451,7 +376,7 @@ def main():
                 title = r"Stats using different mass thresholds for $n_{mb}=$"+"{0:d}".format(nmb)
                 filename = "jumper_results_with_mass_thresholds-ntrace-{0:d}".format(nmb)
                 #  filename = "jumper_results_with_mass_thresholds-ntrace-{0:d}-including-zero-threshold".format(nmb)
-            elif do_my_threshold_incexcl:
+            elif plot_selection.do_my_threshold_incexcl:
                 print("ERROR: TODO: NEED TO GENERATE FILENAME AND FIGTITLE")
                 quit(1)
 

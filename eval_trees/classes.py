@@ -19,20 +19,24 @@ class params():
     Global parameters to be stored
     """
 
-    def __init__(self, mthresh_main, mthresh_sub):
-       self.workdir = ""             # current work directory
-       self.lastdir = ""             # last output_XXXXX directory
-       self.lastdirnr = -1           # XXXX from lastdir
-       self.ncpu = 1            
-       self.noutput = 1              # how many output_XXXXX directories exist
-       self.nout = 1                 # how many outputs we're gonna deal with. (Some might not have merger tree data)
-       self.outputnrs = None         # numpy array of output numbers
-       self.output_start = 0         # lowest snapshot number that we're dealing with (>= 1)
-       self.z0 = 0                   # index of z=0 snapshot
-       self.mth_main = mthresh_main  # mass threshold for main haloes
-       self.mth_sub  = mthresh_sub   # mass threshold for sub haloes
-       self.sussing = False          # use sussing criteria
-       return
+    def __init__(self):
+        self.workdir = ""             # current work directory
+        self.lastdir = ""             # last output_XXXXX directory
+        self.lastdirnr = -1           # XXXX from lastdir
+        self.ncpu = 1            
+        self.noutput = 1              # how many output_XXXXX directories exist
+        self.nout = 1                 # how many outputs we're gonna deal with. (Some might not have merger tree data)
+        self.outputnrs = None         # numpy array of output numbers
+        self.output_start = 0         # lowest snapshot number that we're dealing with (>= 1)
+        self.z0 = 0                   # index of z=0 snapshot
+        self.mth_main = 0             # mass threshold for main haloes
+        self.mth_sub  = 0             # mass threshold for sub haloes
+        self.sussing = False          # use sussing criteria
+        self.use_npart_threshold = True # use a particle number threshold
+        self.npart_thresh_sub = 200     # particle threshold if in use
+        self.npart_thresh_main = 200    # particle threshold if in use
+
+        return
 
 
 

@@ -16,30 +16,13 @@ import classes as cl
 import visualize as vs
 
 
-#====================================
-# MANUALLY SET PARAMETERS
-#====================================
-
-# mass threshold for halos and subhalos
-# default value, you can ignore it
-#  mthresh_main = 2e11
-#  mthresh_sub  = 2e11
-mthresh_main = 0.
-mthresh_sub  = 0.
-
-
-
-
-
-
-
 
 
 #===================================
 if __name__ == '__main__' :
 #===================================
 
-    p = cl.params(mthresh_main, mthresh_sub)
+    p = cl.params()
     c = cl.constants()
     r = cl.results()
 
@@ -50,7 +33,6 @@ if __name__ == '__main__' :
 
     rw.read_mergertree_data(p, sd, mtd, c)
     rw.read_halo_data(p, hd)
-
 
     cosmo.compute_cosmo_quantities(p, c, sd) # in particular get p.z0 and rho_crit
 

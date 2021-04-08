@@ -210,7 +210,7 @@ def get_mass_thresholds(p, mtd, hd):
 #====================================
     """
     Compute mass thresholds:
-    include 1000 main haloes and 200 subhaloes at z=0
+    include 1000 main haloes and 200 subhaloes at z=0 for sussing
 
         p:      params object
         mtd:    mergertree data
@@ -247,16 +247,19 @@ def get_mass_thresholds(p, mtd, hd):
         # use fixed number of particles
         #------------------------------------
 
-        #  mp  = mtd.mass[p.z0][0]/mtd.npart[p.z0][0]
+        if p.use_npart_threshold:
 
-        #  p.mth_sub = 200 * mp
-        #  p.mth_main = 1000 * mp
+            mp  = mtd.mass[p.z0][0]/mtd.npart[p.z0][0]
+
+            p.mth_sub = p.npart_thresh_sub * mp
+            p.mth_main = p.npart_thresh_main * mp
 
 
         # use fixed mass
         #------------------------------------
-        p.mth_sub = 3e11
-        p.mth_main = 3e11
+        else:
+            p.mth_sub = 3e11
+            p.mth_main = 3e11
 
 
     print("Main halo mass threshold is: {0:.3e}".format(p.mth_main))
