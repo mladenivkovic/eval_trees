@@ -14,8 +14,8 @@ import pickle
 
 # set which dataset you want to plot
 
-do_debug = False
-do_sussing_ntrace = True
+do_debug = True
+do_sussing_ntrace = False
 do_sussing_incexcl = False
 do_my_threshold_ntrace = False
 do_my_threshold_incexcl = False

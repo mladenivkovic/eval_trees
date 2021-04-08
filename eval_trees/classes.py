@@ -31,7 +31,7 @@ class params():
        self.z0 = 0                   # index of z=0 snapshot
        self.mth_main = mthresh_main  # mass threshold for main haloes
        self.mth_sub  = mthresh_sub   # mass threshold for sub haloes
-       self.sussing = True          # use sussing criteria
+       self.sussing = False          # use sussing criteria
        return
 
 
@@ -141,6 +141,26 @@ class constants():
 
 
 #======================
+class jumper_data():
+#======================
+    """
+    A class to store jumper data needed for flexible
+    analysis later
+    """
+
+    def __init__(self, sd, sp, zd, zp, md, mp):
+        
+        self.snapshot_desc = sd
+        self.snapshot_prog = sp
+        self.z_desc = zd
+        self.z_prog = zp
+        self.mass_desc = md
+        self.mass_prog = mp
+        return
+
+
+
+#======================
 class results():
 #======================
     """
@@ -197,6 +217,9 @@ class results():
 
         self.dirprogs = np.zeros(1)         # number of direct progenitors
         self.dirprog_free = 0               # last used index for direct progenitors
+
+        self.jumper_results = []            # store jumper_data objects here
+
         return
 
 
@@ -484,6 +507,12 @@ class results():
         self.logM_free += 1
         return
 
+    #----------------------------------------------------------------------
+    def add_jumper_data(self, snapshot_desc, snapshot_prog, z_desc, z_prog, 
+                        mass_desc, mass_prog):
+    #----------------------------------------------------------------------
+        self.jumper_results.append(jumper_data(snapshot_desc, snapshot_prog, z_desc, z_prog, mass_desc, mass_prog))
+        return
 
 
 

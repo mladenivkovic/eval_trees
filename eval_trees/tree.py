@@ -133,7 +133,23 @@ def clean_jumpers(p, r, mtd, sd):
                     print("Descendant > 0, not merger, what happened?")
                     raise IndexError
                 else:
+
+                    # store jumper data for analysis
+                    snap_desc = p.outputnrs[out]
+                    snap_prog = mtd.progenitor_outputnrs[out][i]
+                    z_desc = sd.redshift[out]
+                    z_prog = sd.redshift[snapind]
+                    m_desc = mtd.mass[out][i]
+
+                    snapind_where_prog_was_last_desc = snapind + 1
+                    progind = np.where(mtd.descendants[snapind_where_prog_was_last_desc] == -pr)[0]
+                    m_prog = np.asscalar(mtd.mass[snapind_where_prog_was_last_desc][progind])
+                    r.add_jumper_data(snap_desc, snap_prog, z_desc, z_prog, m_desc, m_prog)
+
+                    # now replace jumper's descendant with 0
                     mtd.descendants[snapind][jumpind] = 0
+
+                    # count deletion
                     nreplaced += 1
 
     print("Cleaned out", nreplaced, "jumpers")
@@ -806,7 +822,7 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
         # Follow only  main branch
         if calc_halo_displacement(kplusone, kzero):
-            delta_r = _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB)
+            delta_r = _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB, sd.unit_l[kplusone.snap_ind])
             r.add_halo_displacement(delta_r)
 
         return
@@ -1118,18 +1134,34 @@ def _calc_dlogMdlogt(md, mp, td, tp):
 
 
 
-#=====================================================================
-def _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB):
-#=====================================================================
+#=========================================================================
+def _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB, unit_lB):
+#=========================================================================
     """
     calculate the displacement for halo A and B 
+
+    mA, mB: masses
+    xA, xB: locations
+    vA, vB: velocities
+    tA, tB: cosmic times
+    rhoCA, rhoCB: critical densities
+    unit_lB: unit length at snapshot B
     """
+
     r200A = compute_R200(mA, rhoCA)
     r200B = compute_R200(mB, rhoCB)
     dt = tB - tA
 
+    dx = xB - xA
+    for i in range(3):
+        # ASSUMING BOXSIZE = 1 IN INTERNAL UNITS
+        if dx[i] > 0.5 * unit_lB:
+            dx[i] -= unit_lB
+        if dx[i] < -0.5 * unit_lB:
+            dx[i] += unit_lB
 
-    vector_quantity = xB - xA - 0.5 * (vB + vA) * dt
+
+    vector_quantity = dx - 0.5 * (vB + vA) * dt
     abs_quantity = vector_quantity[0]**2 + vector_quantity[1]**2 + vector_quantity[2]**2
     abs_quantity = np.sqrt(abs_quantity)
 
