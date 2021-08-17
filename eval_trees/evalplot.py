@@ -21,18 +21,19 @@ from tools_for_plotting import plot_selection # set it in tools_for_plotting.py 
 
 
 # set which plots to make
-plot_mass_growth_halo_subhalo = True
-plot_mass_fluctuations_halo_subhalo = True
-plot_mass_growth_and_fluctuations_vertical = True
-plot_geometry_partbins = True
-plot_main_brench_length_halo_subhalo_no_partbins = True
-plot_main_brench_length_halo_subhalo_partbins = True
-plot_nbranches_halo_subhalo_no_partbins = True
-plot_nbranches_all_no_partbins = True
-plot_nbranches_halo_subhalo_particle_bins = True
+plot_mass_growth_halo_subhalo = False
+plot_mass_fluctuations_halo_subhalo = False
+plot_mass_growth_and_fluctuations_vertical = False
+plot_geometry_partbins = False
+plot_main_brench_length_halo_subhalo_no_partbins = False
+plot_main_brench_length_halo_subhalo_partbins = False
+plot_nbranches_halo_subhalo_no_partbins = False
+plot_nbranches_all_no_partbins = False
+plot_nbranches_halo_subhalo_particle_bins = False
 plot_displacements = True
-plot_dlogMdlogt = True
+plot_dlogMdlogt = False
 
+print_tree_statistics_table = False
 
 
 
@@ -52,7 +53,7 @@ params = {
 mpl.rcParams.update(params)
 
 
-hist_bins = 200
+hist_bins = 100
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#e377c2', '#bcbd22', '#17becf']
 alpha = 0.6
 
@@ -294,7 +295,6 @@ def main():
 
         if plot_geometry_partbins:
 
-            #--------------------------------------------------------------
             # Plot tree geometry: Main branch lengths, number of branches
             #--------------------------------------------------------------
 
@@ -631,6 +631,38 @@ def main():
                 ls = linestyle[f],
                 alpha = alpha,
                 )
+
+
+
+        if print_tree_statistics_table:
+            #----------------------------------------------
+            # Print the table containing average values
+            # for the tree
+            #----------------------------------------------
+
+            print("Tree Geometry Table for", srcfname)
+            print("-------------------------------------------------")
+
+            print("Total clumps at z=0:", r.clumps_at_z0)
+            print("Median particles in clumps at z=0:", r.median_clump_particlecount_at_z0)
+            print("-------------------------------------------------")
+            print("Average branch lengths")
+
+            for b in range(npartbins):
+                cut = r.branchlengths[b][:r.branchlen_free[b]]
+                av = np.average(cut)
+                print("{0:25} {1:.1f}".format(binnames[b], av))
+
+            print("-------------------------------------------------")
+            print("Average number of branches")
+
+            for b in range(npartbins):
+                cut = r.nbranches[b][:r.nbranch_free[b]]
+                av = np.average(cut)
+                print("{0:25} {1:.1f}".format(binnames[b], av))
+            print("-------------------------------------------------")
+            print("-------------------------------------------------")
+
 
 
 
@@ -971,7 +1003,7 @@ def main():
 
         ax14.set_ylabel(r"$N + 1$")
         ax14.set_xlabel(r"$\Delta_r$")
-        ax14.set_xlim((0.1, int(displacements_max+1)))
+        ax14.set_xlim((0.1, max(int(displacements_max+1), 10.0)))
 
         ymax = 10**int(np.log10(displacements_count_max)+1)
         ax14.set_ylim((1., ymax))

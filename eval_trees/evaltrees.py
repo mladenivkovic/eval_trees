@@ -39,7 +39,9 @@ if __name__ == '__main__' :
     tree.clean_jumpers(p, r, mtd, sd)
     tree.determine_if_halo(p, mtd, hd)
     tree.get_mass_thresholds(p, mtd, hd)
-    #  tree.count_pruned_trees(p, r, mtd, sd)
+    tree.count_pruned_trees(p, r, mtd, sd)
+    tree.count_statistics_at_z0(p, r, mtd)
+
 
     # get geometry
     tree.get_main_branch_lengths(p, r, mtd, hd, sd)

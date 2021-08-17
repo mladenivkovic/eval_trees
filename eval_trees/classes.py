@@ -31,8 +31,8 @@ class params():
         self.z0 = 0                   # index of z=0 snapshot
         self.mth_main = 0             # mass threshold for main haloes
         self.mth_sub  = 0             # mass threshold for sub haloes
-        self.sussing = False          # use sussing criteria
-        self.use_npart_threshold = True # use a particle number threshold
+        self.sussing = True          # use sussing criteria
+        self.use_npart_threshold = False # use a particle number threshold
         self.npart_thresh_sub = 200     # particle threshold if in use
         self.npart_thresh_main = 200    # particle threshold if in use
 
@@ -132,9 +132,9 @@ class constants():
         self.Gyr     = (24*3600*365*1e9) # s
         self.G       = 4.492e-15         # Mpc^3/(M_sol Gyr^2)
 
-        self.H0      = 70.4
-        self.omega_m = 0.272
-        self.omega_l = 0.728
+        self.H0      = 70.3
+        self.omega_m = 0.271
+        self.omega_l = 0.729
         self.omega_k = 0.0
         self.omega_b = 0.0
 
@@ -223,6 +223,9 @@ class results():
         self.dirprog_free = 0               # last used index for direct progenitors
 
         self.jumper_results = []            # store jumper_data objects here
+
+        self.clumps_at_z0 = 0               # number of clumps at z = 0
+        self.median_clump_particlecount_at_z0 = 0.  
 
         return
 

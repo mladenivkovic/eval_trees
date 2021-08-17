@@ -23,9 +23,13 @@ from tools_for_plotting import plot_selection # set it in tools_for_plotting.py 
 
 
 # select which plots to make
-plot_jumping_distance = True
-plot_mass_statistics = True
-plot_with_different_mass_thresholds = True
+plot_jumping_distance = False
+plot_mass_statistics = False
+plot_with_different_mass_thresholds = False
+plot_jumping_distance_paper = False
+plot_jumping_distance_paper_bars = True
+plot_mass_ratio_paper = False
+print_table_for_paper = False
 
 
 
@@ -33,6 +37,8 @@ plot_with_different_mass_thresholds = True
 part_thresh = [100, 200, 500, 1000]
 #  part_thresh = [0, 100, 200, 500, 1000]
 mpart = 1.553e+09
+
+part_thresh_paper = 200
 
 
 params = {
@@ -42,16 +48,17 @@ params = {
     'font.serif': 'Computer Modern',
     'legend.fontsize': 16,
     'text.usetex': True,
-    'lines.linewidth': 3,
+    'lines.linewidth': 2, 
+    #  'lines.linewidth': 3,
     'xtick.labelsize': 16,
     'ytick.labelsize': 16,
 }
 
 mpl.rcParams.update(params)
 
-hist_bins = 200
+hist_bins = 100
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#e377c2', '#bcbd22', '#17becf']
-alpha = 0.6
+alpha = 0.7
 
 
 
@@ -104,6 +111,37 @@ def main():
         ratiohistmax = 1.
  
 
+    if plot_jumping_distance_paper:
+
+        fig3 = plt.figure(3, figsize=(6,6)) 
+        ax31 = fig3.add_subplot(111)
+
+    if plot_mass_ratio_paper:
+
+        fig4 = plt.figure(4, figsize=(6,6)) 
+        ax41 = fig4.add_subplot(111)
+
+    if print_table_for_paper:
+
+        partbins = [100, 500, 1000]
+
+        class table_column():
+            
+            def __init__(self):
+                self.title = ""
+                self.bincounts_prog = []
+                self.bincounts_desc = []
+                self.total_jumpers = 0
+        
+        table = []
+
+    if plot_jumping_distance_paper_bars:
+
+        fig5 = plt.figure(5, figsize=(6,6)) 
+        data_barplot = []
+        labels_barplot = []
+        colors_barplot = []
+        ax51 = fig5.add_subplot(111)
 
 
 
@@ -282,6 +320,117 @@ def main():
 
 
 
+        #---------------------------------------------------
+        # Histogram of snapshots jumped over for paper
+        #---------------------------------------------------
+
+        if plot_jumping_distance_paper:
+            mask = np.logical_and(mprog >= part_thresh_paper * mpart, mdesc >= part_thresh_paper * mpart)
+            print("keeping", np.count_nonzero(mask), "/", mask.shape[0])
+            hist, bin_edges = np.histogram(jumps[mask], bins=p.noutput, range=(0, p.noutput))
+            hist += 1 # plot N + 1
+            ax31.semilogy(
+                        bin_edges[:-1], hist, 
+                        label=labelnames[f], 
+                        c=colors[f],
+                        ls = linestyle[f],
+                        alpha = alpha,
+                    )
+
+        #-------------------------------------------------------------
+        # Histogram of snapshots jumped over for paper, bar histogram
+        #-------------------------------------------------------------
+
+        if plot_jumping_distance_paper_bars:
+            mask = np.logical_and(mprog >= part_thresh_paper * mpart, mdesc >= part_thresh_paper * mpart)
+            print("keeping", np.count_nonzero(mask), "/", mask.shape[0])
+            
+            data_barplot.append(np.copy(jumps[mask]))
+            labels_barplot.append(labelnames[f])
+            colors_barplot.append(colors[f])
+
+
+
+
+
+        #------------------------------------------------------
+        # Progenitor and descendant mass ratio for paper
+        #------------------------------------------------------
+
+        if plot_mass_ratio_paper:
+            mask = np.logical_and(mprog > part_thresh_paper * mpart, mdesc > part_thresh_paper * mpart)
+
+            ratio = mdesc[mask] / mprog[mask]
+            bins = np.logspace(np.log10(ratio.min()*0.5), np.log10(ratio.max()*2), hist_bins)
+            hist_ratio, bin_edges = np.histogram(ratio, bins=bins)
+            hist_ratio += 1 # plot N+1
+            bin_centres = 0.5 * (bin_edges[:-1] + bin_edges[1:])
+            ax41.loglog(
+                            bin_centres, hist_ratio, 
+                            label=labelnames[f], 
+                            c=colors[f],
+                            ls = linestyle[f],
+                            alpha = alpha,
+                        )
+ 
+        #------------------------------------------------------
+        # Get table entries for table for paper
+        #------------------------------------------------------
+
+        if print_table_for_paper:
+            column = table_column()
+
+            # get column title
+            if plot_selection.do_my_threshold_ntrace or plot_selection.do_npart_threshold_ntrace:
+                
+                nmb = [int(s) for s in srcfname[:-4].split('-') if s.isdigit()]
+                if len(nmb) != 1:
+                    if "ntrace" in srcfname:
+                        # we have eval_trees-blabla-ntrace-X.pkl, and we want X
+                        nmb = nmb[-1]
+                    else:
+                        raise ValueError("got len(nmb) != 1. nmb=", nmb)
+                else:
+                    nmb = nmb[0]
+
+                column.title = str(nmb)
+            else:
+                print("ERROR: TODO: NEED TO GENERATE TABLE HEADER TITLE")
+                quit(1)
+
+            #  get total number of jumpers
+            column.total_jumpers = mprog.shape[0]
+
+
+            # get bincounts: First below first bin
+            maskp = mprog < partbins[0]*mpart
+            column.bincounts_prog.append(np.count_nonzero(maskp))
+            maskd = mdesc < partbins[0]*mpart
+            column.bincounts_desc.append(np.count_nonzero(maskd))
+
+            # then all other bins
+            for i in range(len(partbins) - 1):
+                maskp = np.logical_and(mprog >= partbins[i]*mpart, mprog < partbins[i+1]*mpart)
+                column.bincounts_prog.append(np.count_nonzero(maskp))
+                maskd = np.logical_and(mdesc >= partbins[i]*mpart, mdesc < partbins[i+1]*mpart)
+                column.bincounts_desc.append(np.count_nonzero(maskd))
+
+            # above last bin
+            maskp = mprog > partbins[-1]*mpart
+            column.bincounts_prog.append(np.count_nonzero(maskp))
+            maskd = mdesc > partbins[-1]*mpart
+            column.bincounts_desc.append(np.count_nonzero(maskd))
+
+            table.append(column)
+
+
+
+
+
+
+
+
+
 
 
 
@@ -298,8 +447,8 @@ def main():
         ax1.set_title(r"Histogram of snapshot number difference of all jumpers", fontsize=smalltitlefontsize)
         ax1.grid()
         ax1.legend()
-        fig1.savefig("jumper_distance-"+suffix+".png", dpi=300)
         fig1.tight_layout()
+        fig1.savefig("jumper_distance-"+suffix+".png", dpi=300)
 
 
     if plot_mass_statistics:
@@ -383,12 +532,168 @@ def main():
             fig.suptitle(title)
             fig.tight_layout()
             fig.savefig(filename, dpi=300)
+ 
+
+    if plot_jumping_distance_paper:
+        smalltitlefontsize = 16
+
+        ax31.set_xlabel(r"snapshot$_{desc}$ - snapshot$_{prog}$")
+        ax31.set_ylabel(r"$N+1$")
+        ax31.set_xlim(0, 41)
+        ax31.set_title(r"Histogram of snapshot number difference of all jumpers", fontsize=smalltitlefontsize)
+        ax31.grid()
+        ax31.legend()
+        fig3.tight_layout()
+        fig3.savefig("jumper_distance-"+suffix+".png", dpi=300)
+
+
+    if plot_jumping_distance_paper_bars:
+        smalltitlefontsize = 16
+
+        ax51.hist(
+                    data_barplot, 
+                    bins=range(2, 41), 
+                    histtype='bar', 
+                    color=colors_barplot, 
+                    label=labels_barplot,
+                    bottom = 1,
+                    log = True,
+                    align = "left", 
+                )
+
+        for entry in data_barplot:
+            print(entry.min())
+
+        ax51.set_xlabel(r"snapshot$_{desc}$ - snapshot$_{prog}$")
+        ax51.set_ylabel(r"$N+1$")
+        ax51.set_xlim(1, 41)
+        ax51.set_title(r"Histogram of snapshot number difference of all jumpers", fontsize=smalltitlefontsize)
+        ax51.grid()
+        ax51.legend()
+        ax51.set_xticks(range(2, 41, 4))
+        fig5.tight_layout()
+        fig5.savefig("jumper_distance-barplot-"+suffix+".png", dpi=300)
+
+
+    if plot_mass_ratio_paper:
+        smalltitlefontsize = 16
+
+        ax41.set_ylabel(r"$N+1$")
+        ax41.grid()
+        ax41.legend()
+
+        ax41.set_xlabel(r"$m_{desc}$/$m_{prog}$")
+        ax41.set_title(r"Jumper Descendant to Jumper Progenitor Mass Ratio", fontsize=smalltitlefontsize)
+
+        fig4.tight_layout()
+        fig4.savefig("jumper_mass_ratio-"+suffix+".png", dpi=300)
+
+
+    if print_table_for_paper:
+
+        if not (plot_selection.do_my_threshold_ntrace or plot_selection.do_npart_threshold_ntrace):
+            print("ERROR: CAN'T PRINT TABLE FOR NON-NTRACE CASES. YOU NEED TO PROGRAM THIS FIRST.")
+            quit(1)
+
+
+        print()
+        def add_newline(line):
+            # :-2: remove last '& '
+            return line[:-2] + "\\\\"
             
+        tabular="\\begin{tabular}[c]{l |"
+        for column in table:
+            tabular += " p{1cm} |"
+        tabular += "}"
+        print(tabular)
+
+
+        header = '    $n_{\\rm mb}=$                   & '
+        for column in table:
+            header += "{0:8s}    & ".format(column.title)
+        header = add_newline(header)
+        
+        print(header)
+        print("\\hline")
+
+
+
+        line = '    Total Jumpers                   & '
+        for column in table:
+            line += "{0:8d}    & ".format(column.total_jumpers)
+        line = add_newline(line)
+        print(line)
+        print("\\hline")
+
+
+
+        line = "    Jumper Progenitors & "
+        for column in table:
+            line += "& "
+        line = add_newline(line)
+        print(line)
+
+        line = '    clumps with < {0:4d} particles    & '.format(partbins[0])
+        for column in table:
+            line += "{0:8d}    & ".format(column.bincounts_prog[0])
+        line = add_newline(line)
+        print(line)
+
+
+        for i in range(1, len(partbins)):
+            line = '    clumps with {0:4d}-{1:4d} particles & '.format(partbins[i-1], partbins[i])
+            for column in table:
+                line += "{0:8d}    & ".format(column.bincounts_prog[i])
+            line = add_newline(line)
+            print(line)
+ 
+
+        line = '    clumps with > {0:4d} particles    & '.format(partbins[-1])
+        for column in table:
+            line += "{0:8d}    & ".format(column.bincounts_prog[-1])
+        line = add_newline(line)
+        print(line)
+
+
+
+
+        print("\\hline")
+
+
+
+        line = "    Jumper Descendants & "
+        for column in table:
+            line += "& "
+        line = add_newline(line)
+        print(line)
+
+        line = '    clumps with < {0:4d} particles    & '.format(partbins[0])
+        for column in table:
+            line += "{0:8d}    & ".format(column.bincounts_desc[0])
+        line = add_newline(line)
+        print(line)
+
+
+        for i in range(1, len(partbins)):
+            line = '    clumps with {0:4d}-{1:4d} particles & '.format(partbins[i-1], partbins[i])
+            for column in table:
+                line += "{0:8d}    & ".format(column.bincounts_desc[i])
+            line = add_newline(line)
+            print(line)
+ 
+
+        line = '    clumps with > {0:4d} particles    & '.format(partbins[-1])
+        for column in table:
+            line += "{0:8d}    & ".format(column.bincounts_desc[-1])
+        line = add_newline(line)
+        print(line)
 
 
 
 
 
+        print("\\hline")
+        print("\\end{tabular}")
 
 
 

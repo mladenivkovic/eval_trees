@@ -5,6 +5,29 @@ import numpy as np
 from cosmo import compute_R200
 
 
+#=========================================
+def count_statistics_at_z0(p, r, mtd):
+#=========================================
+    """
+    Count number of clumps and their median particle
+    number at z = 0
+
+        p:      params object
+        r:      results object
+        mtd:    mtreedata object
+    """
+
+    print("Gathering statistics at z = 0")
+
+    proper_clumps = mtd.descendants[p.z0] > 0
+    r.clumps_at_z0 = mtd.descendants[p.z0][proper_clumps].shape[0]
+    r.median_clump_particlecount_at_z0 = np.median(mtd.npart[p.z0][proper_clumps])
+
+    return
+
+
+
+
 
 #=========================================
 def count_pruned_trees(p, r, mtd, sd):
@@ -666,7 +689,7 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         """
 
         #  M > 10^12 M_Sol / h
-        mthresh_srisawat = 1e12 / 0.704
+        mthresh_srisawat = 1e12 / 0.703
 
         if sd.redshift[kzero.snap_ind] <= 2.:
             # version 1:
@@ -689,7 +712,7 @@ def get_mass_evolution(p, r, mtd, cd, sd):
     def calc_dlogM(kplusone, kzero):
     #-------------------------------------------
         """
-        Whether to calculate the displacement for the halo population
+        Whether to calculate the log mass growth for the halo population
         """
 
 
@@ -700,7 +723,7 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
             if p.sussing:
                 #  M > 10^12 M_Sol / h
-                mthresh_srisawat = 1e12 / 0.704
+                mthresh_srisawat = 1e12 / 0.703
                 if (md > mthresh_srisawat) and (mp > mthresh_srisawat):
                     return True
             else:

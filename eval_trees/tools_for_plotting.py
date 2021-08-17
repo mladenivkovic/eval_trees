@@ -15,7 +15,7 @@ class plot_selection():
     do_debug = False
 
     # using sussing criteria
-    do_sussing_ntrace = False
+    do_sussing_ntrace = True
     do_sussing_incexcl = False
 
     # use my arbitrary mass threshold
@@ -25,7 +25,7 @@ class plot_selection():
     # use minimum particle threshold
     npart_threshold = 200
     do_npart_debug = False
-    do_npart_threshold_ntrace = True
+    do_npart_threshold_ntrace = False
     do_npart_threshold_incexcl = False
 
 
