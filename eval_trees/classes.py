@@ -31,10 +31,15 @@ class params():
         self.z0 = 0                   # index of z=0 snapshot
         self.mth_main = 0             # mass threshold for main haloes
         self.mth_sub  = 0             # mass threshold for sub haloes
-        self.sussing = True          # use sussing criteria
+
+        # behaviour stuff 
+        self.sussing = True           # use sussing criteria
         self.use_npart_threshold = False # use a particle number threshold
         self.npart_thresh_sub = 200     # particle threshold if in use
         self.npart_thresh_main = 200    # particle threshold if in use
+        self.do_short_branch_investigation = True # print out stuff for short branches of massive haloes
+        self.do_subhalo_investigation = True # do extra subhalo checks in mass evolution
+        self.do_extra_mass_evolution_checks = False
 
         return
 
@@ -63,7 +68,7 @@ class snapshotdata():
         self.redshift    = np.zeros(par.noutput) # z
         self.H           = np.zeros(par.noutput) # H(z)
         self.rho_crit    = np.zeros(par.noutput)
-        self.times       = np.zeros(par.noutput) # t(z)
+        self.times       = np.zeros(par.noutput) # t(z) in Gyrs
         return
  
 
@@ -115,6 +120,23 @@ class halodata():
         return
 
 
+#======================
+class clumpdata():
+#======================
+    """
+    Data from clump_XXXXX.txtYYYYY 
+    """
+    def __init__(self, par):
+        """
+        par: params object
+        """
+
+        self.clumpid = [np.zeros(1) for i in range(par.noutput)]
+        self.clump_level = [np.zeros(1) for i in range(par.noutput)]
+        return
+
+
+
 
 
 
@@ -152,7 +174,7 @@ class jumper_data():
     analysis later
     """
 
-    def __init__(self, sd, sp, zd, zp, md, mp):
+    def __init__(self, sd, sp, zd, zp, md, mp, d_halo, p_halo):
         
         self.snapshot_desc = sd
         self.snapshot_prog = sp
@@ -160,6 +182,8 @@ class jumper_data():
         self.z_prog = zp
         self.mass_desc = md
         self.mass_prog = mp
+        self.desc_is_halo = d_halo
+        self.prog_is_halo = p_halo
         return
 
 
@@ -196,8 +220,6 @@ class results():
         self.nbr = None     # number of branches
 
         self.njumpers = 0   # total number of jumpers
-        self.npruned = 0    # number of pruned trees
-
 
         self.branch_bins = [100, 500, 1000]                                             # particle numbers for bins of main branch lengths
         npartbins = len(self.branch_bins) + 1
@@ -226,6 +248,10 @@ class results():
 
         self.clumps_at_z0 = 0               # number of clumps at z = 0
         self.median_clump_particlecount_at_z0 = 0.  
+
+        self.pruned_nparts = np.zeros(1)    # number of particles of LIDIT
+        self.pruned_is_halo = np.zeros(1)   # was lidit halo?
+        self.pruned_free = 0
 
         return
 
@@ -516,10 +542,19 @@ class results():
 
     #----------------------------------------------------------------------
     def add_jumper_data(self, snapshot_desc, snapshot_prog, z_desc, z_prog, 
-                        mass_desc, mass_prog):
+                        mass_desc, mass_prog, desc_is_halo, prog_is_halo):
     #----------------------------------------------------------------------
-        self.jumper_results.append(jumper_data(snapshot_desc, snapshot_prog, z_desc, z_prog, mass_desc, mass_prog))
+        self.jumper_results.append(jumper_data(snapshot_desc, snapshot_prog, z_desc, z_prog, mass_desc, mass_prog, desc_is_halo, prog_is_halo))
         return
+
+    def add_pruned_data(self, nparts, is_halo):
+        if self.pruned_free == self.pruned_nparts.shape[0]:
+            self.pruned_nparts.resize(self.pruned_nparts.shape[0]+10000)
+            self.pruned_is_halo.resize(self.pruned_nparts.shape[0]+10000)
+
+        self.pruned_nparts[self.pruned_free] = nparts
+        self.pruned_is_halo[self.pruned_free] = is_halo
+        self.pruned_free += 1
 
 
 
@@ -536,8 +571,3 @@ def init_lists(par):
     mtd = mtreedata(par)
 
     return sd, mtd
-
-
-
-
-

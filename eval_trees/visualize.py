@@ -36,6 +36,7 @@ def plot_mass_growth(r):
 
     for arr, n, ax in [(r.mg, r.mg_free, ax1), (r.hmg, r.hmg_free, ax2), (r.shmg, r.shmg_free, ax3)] :
         cut = arr[:n]
+        cut = np.tan(0.5 * np.pi * cut) # to plot alpha instead of beta
         hist, bin_edges = np.histogram(cut, bins=100)
         #  hist, bin_edges = np.histogram(cut, bins=100, range=(-1, 1))
         hist = hist/norm # normalize histogram
@@ -136,11 +137,11 @@ def plot_displacements(r):
     norm = r.displacement_free
 
     cut = r.displacements[:r.displacement_free]
-    hist, bin_edges = np.histogram(cut, bins=100)
+    hist, bin_edges = np.histogram(cut, bins=np.logspace(-3, 1.2, 200))
     hist = hist/norm # normalize histogram
     bin_centers = 0.5*(bin_edges[1:]+bin_edges[:-1])
 
-    ax1.semilogy(bin_centers, hist)
+    ax1.loglog(bin_centers, hist)
 
     plt.show()
 

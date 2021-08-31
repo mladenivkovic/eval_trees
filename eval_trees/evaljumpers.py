@@ -27,9 +27,9 @@ plot_jumping_distance = False
 plot_mass_statistics = False
 plot_with_different_mass_thresholds = False
 plot_jumping_distance_paper = False
-plot_jumping_distance_paper_bars = True
+plot_jumping_distance_paper_bars = False
 plot_mass_ratio_paper = False
-print_table_for_paper = False
+print_table_for_paper = True
 
 
 
@@ -132,6 +132,10 @@ def main():
                 self.bincounts_prog = []
                 self.bincounts_desc = []
                 self.total_jumpers = 0
+                self.sub_to_main = 0
+                self.sub_to_sub = 0
+                self.main_to_sub = 0
+                self.main_to_main = 0
         
         table = []
 
@@ -164,6 +168,10 @@ def main():
         jumps = np.array([j.snapshot_desc - j.snapshot_prog for j in r.jumper_results])
         mprog = np.array([j.mass_prog for j in r.jumper_results])
         mdesc = np.array([j.mass_desc for j in r.jumper_results])
+
+        desc_is_halo = np.array([j.desc_is_halo for j in r.jumper_results])
+        prog_is_halo = np.array([j.prog_is_halo for j in r.jumper_results])
+
         njumpers = len(r.jumper_results)
         print("Read in", njumpers, "jumpers")
 
@@ -420,6 +428,16 @@ def main():
             column.bincounts_prog.append(np.count_nonzero(maskp))
             maskd = mdesc > partbins[-1]*mpart
             column.bincounts_desc.append(np.count_nonzero(maskd))
+
+            sub_to_main = np.logical_and(np.logical_not(prog_is_halo), desc_is_halo)
+            sub_to_sub = np.logical_and(np.logical_not(prog_is_halo), np.logical_not(desc_is_halo))
+            main_to_sub = np.logical_and(prog_is_halo, np.logical_not(desc_is_halo))
+            main_to_main = np.logical_and(prog_is_halo, desc_is_halo)
+
+            column.sub_to_main = np.count_nonzero(sub_to_main)
+            column.sub_to_sub = np.count_nonzero(sub_to_sub)
+            column.main_to_sub = np.count_nonzero(main_to_sub)
+            column.main_to_main = np.count_nonzero(main_to_main)
 
             table.append(column)
 
@@ -695,6 +713,44 @@ def main():
         print("\\hline")
         print("\\end{tabular}")
 
+
+        # Additional data, not in paper
+        print("--------------------------------------------------------")
+        print("sub to sub  :", end="")
+        for column in table:
+            print("{0:8d}  ".format(column.sub_to_sub), end="")
+        print()
+        print("             ", end="")
+        for column in table:
+            print("{0:8.4f}  ".format(column.sub_to_sub/column.total_jumpers), end="")
+        print()
+
+        print("sub to main :", end="")
+        for column in table:
+            print("{0:8d}  ".format(column.sub_to_main), end="")
+        print()
+        print("             ", end="")
+        for column in table:
+            print("{0:8.4f}  ".format(column.sub_to_main/column.total_jumpers), end="")
+        print()
+
+        print("main to sub :", end="")
+        for column in table:
+            print("{0:8d}  ".format(column.main_to_sub), end="")
+        print()
+        print("             ", end="")
+        for column in table:
+            print("{0:8.4f}  ".format(column.main_to_sub/column.total_jumpers), end="")
+        print()
+
+        print("main to main:", end="")
+        for column in table:
+            print("{0:8d}  ".format(column.main_to_main), end="")
+        print()
+        print("             ", end="")
+        for column in table:
+            print("{0:8.4f}  ".format(column.main_to_main/column.total_jumpers), end="")
+        print()
 
 
 

@@ -41,7 +41,8 @@ def count_pruned_trees(p, r, mtd, sd):
         sd:     snapshotdata object
     """
 
-    npruned = 0
+    print("Counting pruned trees")
+
     for out in range(p.z0+1, p.nout):
         absdescs = np.abs(mtd.descendants[out])
         absprogs = np.abs(mtd.progenitors[out-1])
@@ -50,7 +51,31 @@ def count_pruned_trees(p, r, mtd, sd):
             if de == 0:
                 continue
             if de not in absprogs:
-                npruned += 1
+                r.add_pruned_data(mtd.npart[out][i], mtd.is_halo[out][i])
+
+    return
+
+
+
+#=========================================
+def count_total_descendants(p, mtd):
+#=========================================
+    """
+    Count how many descendants are in simulation
+
+        p:      params object
+        r:      results object
+        mtd:    mtreedata object
+        sd:     snapshotdata object
+    """
+
+    total_descendants = 0
+
+    for out in range(p.nout):
+        
+        total_descendants += mtd.descendants[out][mtd.descendants[out] > 0].shape[0]
+
+    print("Total unique descendants in simulation:", total_descendants)
 
     return
 
@@ -163,11 +188,13 @@ def clean_jumpers(p, r, mtd, sd):
                     z_desc = sd.redshift[out]
                     z_prog = sd.redshift[snapind]
                     m_desc = mtd.mass[out][i]
+                    desc_is_halo = mtd.is_halo[out][i]
 
                     snapind_where_prog_was_last_desc = snapind + 1
                     progind = np.where(mtd.descendants[snapind_where_prog_was_last_desc] == -pr)[0]
                     m_prog = np.asscalar(mtd.mass[snapind_where_prog_was_last_desc][progind])
-                    r.add_jumper_data(snap_desc, snap_prog, z_desc, z_prog, m_desc, m_prog)
+                    prog_is_halo = np.asscalar(mtd.is_halo[snapind_where_prog_was_last_desc][progind])
+                    r.add_jumper_data(snap_desc, snap_prog, z_desc, z_prog, m_desc, m_prog, desc_is_halo, prog_is_halo)
 
                     # now replace jumper's descendant with 0
                     mtd.descendants[snapind][jumpind] = 0
@@ -219,7 +246,7 @@ def determine_if_halo(p, mtd, hd):
             else:
                 id += 1
 
-        mtd.is_halo[i] = is_halo
+        mtd.is_halo[i] = is_halo.copy()
 
 
     return
@@ -315,6 +342,8 @@ def get_main_branch_lengths(p, r, mtd, hd, sd):
 
     for c, clump in enumerate(mtd.descendants[p.z0]):
 
+        d_npart = mtd.npart[p.z0][c]
+
         if clump > 0:
             # clump = 0 is removed jumper;
             # clump < 0 is merger; we're only taking main branch here
@@ -369,6 +398,71 @@ def get_main_branch_lengths(p, r, mtd, hd, sd):
                 r.add_branch_length_main(last_snap - p.z0, mtd.npart[p.z0][c])
             else:
                 r.add_branch_length_sub(last_snap - p.z0, mtd.npart[p.z0][c])
+
+            
+            if p.do_short_branch_investigation:
+
+                if d_npart > 1000 and last_snap - p.z0 < 6:
+                    print(
+                            "--- Short branches: clumpID", clump, 
+                            "npart", d_npart, 
+                            "halo?", mtd.is_halo[p.z0][c], 
+                            "len", last_snap - p.z0, 
+                            "last desc", mtd.descendants[desc_snap_ind][dind], 
+                            "@", p.outputnrs[last_snap]
+                            )
+
+                    # repeat tree walk and print out each entry
+                    dind = c
+                    desc_snap_ind = p.z0
+                    desc = mtd.descendants[p.z0][dind]
+                    prog = mtd.progenitors[p.z0][dind]
+                    desc_is_halo = mtd.is_halo[p.z0][dind]
+
+
+                    if p.sussing:
+                        # skip if threshold is not satisfied
+                        if desc_is_halo:
+                            if mtd.mass[p.z0][dind] < p.mth_main:
+                                continue
+                        else:
+                            if mtd.mass[p.z0][dind] < p.mth_sub:
+                                continue
+
+
+                    last_snap = p.z0 # the last snapshot this clump appeared in
+
+                    # now descend down the main branch
+                    while prog != 0:
+
+                        if prog > 0:    # if progenitor isn't jumper
+                            # find progenitor's index in previous snapshot
+                            p_snap_ind = desc_snap_ind + 1
+                            pind = np.where(mtd.descendants[p_snap_ind]==prog)[0]
+
+                        elif prog < 0:
+                            p_snap_ind = _get_snap_ind(p, mtd.progenitor_outputnrs[desc_snap_ind][dind])
+                            pind = np.where(mtd.descendants[p_snap_ind]==-prog)[0]
+
+                        if pind.shape[0] != 1:
+                            print('got pind.shape=', pind.shape)
+                            print('something went wrong, exiting')
+                            raise IndexError
+
+                        # prepare for next round
+                        desc_snap_ind = p_snap_ind
+                        dind = pind
+                        last_snap = p_snap_ind
+                        prog = mtd.progenitors[p_snap_ind][pind]
+
+                        print(
+                            "----- snap", p.outputnrs[desc_snap_ind], 
+                            "desc:", mtd.descendants[desc_snap_ind][dind], 
+                            "npart", mtd.npart[desc_snap_ind][dind], 
+                            "halo?", mtd.is_halo[desc_snap_ind][dind], 
+                            )
+
+
 
 
     return
@@ -472,8 +566,10 @@ def get_nr_of_branches(p, r, mtd, hd):
 def get_number_direct_progenitors(p, r, mtd, sd):
 #=====================================================
     """
-    Get the number of direct progenitors for every halo
-    satisfying the mass threshold 
+    Get the number of direct progenitors for every main halo
+    i.e. how many progenitors from the past snapshot have been 
+    merged into this descendant? Then add the main progenitor
+    on top.
 
         p:      params object
         r:      results object
@@ -501,8 +597,10 @@ def get_number_direct_progenitors(p, r, mtd, sd):
             #  if mtd.mass[snap][d] >= p.mth_main:
 
             if mtd.progenitors[snap][d] == 0:
+                # this is a new clump. There can't be any mergers.
                 dirprogs = 0
             else:
+                # all mergers + 1 for main progenitor
                 dirprogs = len(np.where(mtd.descendants[snap] == -desc)[0]) + 1 # + 1 for main progenitor
 
             r.add_dirprog(dirprogs)
@@ -512,6 +610,63 @@ def get_number_direct_progenitors(p, r, mtd, sd):
 
 
 
+
+
+
+
+
+#  #=====================================================
+#  def get_displacements(p, r, mtd, sd):
+#  #=====================================================
+#      """
+#      Get the displacements for every main halo
+#      progenitor-descendant pair
+#
+#          p:      params object
+#          r:      results object
+#          mtd:    mtreedata object
+#          sd:     snapshotdata object
+#      """
+#
+#      print("Computing displacements")
+#
+#      # TODO: something's not quite right here...
+#
+#
+#      for snap in range(p.z0, p.nout):
+#
+#          for d, desc in enumerate(mtd.descendants[snap]):
+#
+#              if desc > 0 and mtd.is_halo[snap][d]:
+#                  # skip mergers, pruned trees, and subhaloes
+#
+#                  if mtd.mass[snap][d] >= p.mth_main:
+#                  #  if mtd.mass[snap][d] >= 1e12 / 0.703: # always use Srisawat threshold here
+#                      continue
+#
+#                  prog = mtd.progenitors[snap][d]
+#
+#                  if prog <= 0:
+#                      # no jumper or new descendant
+#                      continue
+#
+#                  p_snap_ind = snap + 1
+#                  pind = np.where(mtd.descendants[p_snap_ind]==prog)[0]
+#
+#                  if pind.shape[0] != 1:
+#                      print('got pind.shape=', pind.shape)
+#                      print('something went wrong, exiting')
+#                      raise IndexError
+#                  pind = np.asscalar(pind)
+#
+#                  if mtd.is_halo[p_snap_ind][pind]:
+#                      if mtd.mass[p_snap_ind][pind] >= p.mth_main:
+#                      #  if mtd.mass[p_snap_ind][pind] >= 1e12 / 0.703: # always use Srisawat threshold here
+#
+#                          delta_r = _calc_displacement(snap, d, p_snap_ind, pind, mtd, sd)
+#                          r.add_halo_displacement(delta_r)
+#
+#      return
 
 
 
@@ -639,9 +794,9 @@ def get_nr_of_branches_recursive(p, r, mtd, hd):
 
 
 
-#=========================================
-def get_mass_evolution(p, r, mtd, cd, sd):
-#=========================================
+#=============================================
+def get_mass_evolution(p, r, mtd, hd, sd, cd):
+#=============================================
     """
     Compute mass fluctuations and growth along 
     the main branches of z=0 haloes.
@@ -649,8 +804,9 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         p:      params object
         r:      results object
         mtd:    mtreedata object
-        cd:     clumpdata object
+        hd:     halodata object
         sd:     snapshotdata object
+        cd:     clumpdata object
     """
 
 
@@ -678,8 +834,22 @@ def get_mass_evolution(p, r, mtd, cd, sd):
                 self.is_halo = mtd.is_halo[snap_ind][ind]
             else:
                 self.is_halo = False
-            return
 
+            if p.do_subhalo_investigation:
+                self.clump_level = None
+                if ind is not None and snap_ind is not None:
+                    descID = mtd.descendants[snap_ind][ind]
+                    desc_ind = np.where(cd.clumpid[snap_ind]==descID)[0]
+                    try:
+                        self.clump_level = np.asscalar(cd.clump_level[snap_ind][desc_ind])
+                    except ValueError:
+                        if mtd.npart[snap_ind][ind] > 20:
+                            print(
+                                "Error: Missing clump in clump_data with > 20 particles ID", 
+                                descID, 
+                                "snapshot", p.outputnrs[snap_ind], 
+                                "nparts", mtd.npart[snap_ind][ind])
+            return
 
     #-------------------------------------------
     def calc_halo_displacement(kplusone, kzero):
@@ -691,20 +861,13 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         #  M > 10^12 M_Sol / h
         mthresh_srisawat = 1e12 / 0.703
 
-        if sd.redshift[kzero.snap_ind] <= 2.:
-            # version 1:
-            #  if kplusone.is_halo and kzero.is_halo:
-            #      if (kzero.snap_ind - kplusone.snap_ind == 1): # only non-jumpers
-            #
-            #          md = mtd.mass[kplusone.snap_ind][kplusone.ind]
-            #          mp = mtd.mass[kzero.snap_ind][kzero.ind]
-            #
-            #          if (md > mthresh_srisawat) and (mp > mthresh_srisawat):
-            #              return True
-
-            # version 2:
-            return calc_halo(kplusone, kzero)
-
+        if kplusone.is_halo and kzero.is_halo:
+            if kzero.snap_ind - kplusone.snap_ind == 1: # only do for non-jumpers!
+                md = mtd.mass[kplusone.snap_ind][kplusone.ind]
+                mp = mtd.mass[kzero.snap_ind][kzero.ind]
+                if md >= p.mth_main and mp >= p.mth_main:
+                #  if md >= mthresh_srisawat and mp >= mthresh_srisawat:
+                    return True
         return False
 
 
@@ -777,14 +940,26 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
 
 
+    extreme_growth_desc_ind = []
+    extreme_growth_desc_snap_ind = []
+    extreme_growth_prog_ind = []
+    extreme_growth_prog_snap_ind = []
+
+    class extra_data_to_gather():
+        def __init__(self):
+            self.mass_and_level_decrease = 0
+            self.mass_and_level_increase = 0
+            self.total_subhaloes_in_growth = 0
 
     #-----------------------------------------
-    def get_mass_growth(kplusone, kzero):
+    def get_mass_growth(kplusone, kzero, extra):
     #-----------------------------------------
         """
         Compute the mass growth between k+1 and k_0, if applicable
         store results directly, and write them in the masscompdata
         objects where needed
+
+        extra: extra data to gather
         """
         md = mtd.mass[kplusone.snap_ind][kplusone.ind]
         mp = mtd.mass[kzero.snap_ind][kzero.ind]
@@ -796,6 +971,16 @@ def get_mass_evolution(p, r, mtd, cd, sd):
             r.add_any_growth(mgrowth)
             kzero.any = True
             kzero.massgrowth = mgrowth
+
+            if abs(mgrowth) > 0.95 and p.do_extra_mass_evolution_checks:
+                #  print("--- Got growth {0:.3f} for descendant {1:d} snap {2:d} npart {3:.1f}".format(
+                #          mgrowth, mtd.descendants[kplusone.snap_ind][kplusone.ind],
+                #          p.outputnrs[kplusone.snap_ind], mtd.npart[kplusone.snap_ind][kplusone.ind])
+                #          )
+                extreme_growth_desc_ind.append(kplusone.ind)
+                extreme_growth_desc_snap_ind.append(kplusone.snap_ind)
+                extreme_growth_prog_ind.append(kzero.ind)
+                extreme_growth_prog_snap_ind.append(kzero.snap_ind)
 
         if calc_halo(kplusone, kzero):
             if kzero.massgrowth is not None: # 'any' caught it
@@ -819,40 +1004,27 @@ def get_mass_evolution(p, r, mtd, cd, sd):
             #  r.add_subhalo_logM(dlogM)
 
             kzero.sub = True
+            
+            #  if p.do_subhalo_investigation:
+            if p.do_subhalo_investigation and abs(kzero.massgrowth) > 0.75:
+                if kzero.clump_level is not None:
+                    #  print("Subhalo Growth {0:.3f} levels {1:d} {2:d}".format(
+                    #          kzero.massgrowth, kzero.clump_level, kplusone.clump_level))
+                    if kzero.massgrowth > 0 and kzero.clump_level < kplusone.clump_level:
+                        extra.mass_and_level_increase += 1
+                    elif kzero.massgrowth < 0 and kzero.clump_level > kplusone.clump_level:
+                        extra.mass_and_level_decrease += 1
+                    extra.total_subhaloes_in_growth += 1
+                else:
+                    print("Using missing clump...")
+
+
 
         if calc_dlogM(kplusone, kzero):
             dlogM = _calc_dlogMdlogt(md, mp, td, tp)
             r.add_any_logM(dlogM)
 
-        return
-
-
-    #-----------------------------------------
-    def get_displacement(kplusone, kzero):
-    #-----------------------------------------
-        """
-        Compute the mass growth between k+1 and k_0, if applicable
-        store results directly
-        """
-
-        mB = mtd.mass[kplusone.snap_ind][kplusone.ind]
-        mA = mtd.mass[kzero.snap_ind][kzero.ind]
-        xB = mtd.x[kplusone.snap_ind][kplusone.ind]
-        xA = mtd.x[kzero.snap_ind][kzero.ind]
-        vB = mtd.v[kplusone.snap_ind][kplusone.ind]
-        vA = mtd.v[kzero.snap_ind][kzero.ind]
-        tB = sd.times[kplusone.snap_ind]
-        tA = sd.times[kzero.snap_ind]
-        rhoCB = sd.rho_crit[kplusone.snap_ind]
-        rhoCA = sd.rho_crit[kzero.snap_ind]
-
-        # Follow only  main branch
-        if calc_halo_displacement(kplusone, kzero):
-            delta_r = _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB, sd.unit_l[kplusone.snap_ind])
-            r.add_halo_displacement(delta_r)
-
-        return
-
+        return extra
 
 
 
@@ -883,6 +1055,34 @@ def get_mass_evolution(p, r, mtd, cd, sd):
         return
 
 
+    #-----------------------------------------
+    def get_displacement(kplusone, kzero):
+    #-----------------------------------------
+        """
+        Compute the mass growth between k+1 and k_0, if applicable
+        store results directly
+        """
+
+        mB = mtd.mass[kplusone.snap_ind][kplusone.ind]
+        mA = mtd.mass[kzero.snap_ind][kzero.ind]
+        xB = mtd.x[kplusone.snap_ind][kplusone.ind] / sd.aexp[kplusone.snap_ind]
+        xA = mtd.x[kzero.snap_ind][kzero.ind] / sd.aexp[kzero.snap_ind]
+        vB = mtd.v[kplusone.snap_ind][kplusone.ind] / sd.aexp[kplusone.snap_ind]
+        vA = mtd.v[kzero.snap_ind][kzero.ind] / sd.aexp[kzero.snap_ind]
+        tB = sd.times[kplusone.snap_ind]
+        tA = sd.times[kzero.snap_ind]
+        rhoCB = sd.rho_crit[kplusone.snap_ind]
+        rhoCA = sd.rho_crit[kzero.snap_ind]
+        r200B = compute_R200(mB, rhoCB) / sd.aexp[kplusone.snap_ind]
+        r200A = compute_R200(mA, rhoCA) / sd.aexp[kzero.snap_ind]
+        unit_lB = sd.unit_l[kplusone.snap_ind] / sd.aexp[kplusone.snap_ind]
+
+        # Follow only  main branch
+        if calc_halo_displacement(kplusone, kzero):
+            delta_r = _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, r200A, r200B, unit_lB)
+            r.add_halo_displacement(delta_r)
+
+        return
 
 
 
@@ -891,7 +1091,7 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
 
     #-----------------------------------------------------
-    def walk_tree_main_branch(kplusone, kzero):
+    def walk_tree_main_branch(kplusone, kzero, extra):
     #-----------------------------------------------------
         """
         Walk the tree down the main branch only, compute the
@@ -899,6 +1099,7 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
             kplusone:   k+1: descendant of kzero
             kzero:      k_0: clump under investigation
+            extra:      extra data to gather
 
         kplusone is needed for computation over non-adjacent snapshots
         """
@@ -928,17 +1129,17 @@ def get_mass_evolution(p, r, mtd, cd, sd):
 
 
         # compute mass growth between k0 and k-1 if applicable
-        get_mass_growth(kzero, kminusone)
+        extra = get_mass_growth(kzero, kminusone, extra)
 
         # compute mass growth fluctuation of k0 and if applicable
         get_mass_fluct(kzero, kminusone)
 
-        # compute displacement statistic
+        # compute mass growth fluctuation of k0 and if applicable
         get_displacement(kzero, kminusone)
 
         # recurse
-        walk_tree_main_branch(kzero, kminusone)
-        return
+        extra = walk_tree_main_branch(kzero, kminusone, extra)
+        return extra
 
 
 
@@ -947,6 +1148,8 @@ def get_mass_evolution(p, r, mtd, cd, sd):
     # Main Loop
     #--------------------
 
+    extra = extra_data_to_gather()
+
     for c, clump in enumerate(mtd.descendants[p.z0]):
 
         if clump > 0:
@@ -954,164 +1157,63 @@ def get_mass_evolution(p, r, mtd, cd, sd):
             # clump < 0 is merger; we're only taking main branch here
 
             kzero = masscompdata(c, p.z0) # initialize k_zero
-            walk_tree_main_branch(masscompdata(), kzero)
+            walk_tree_main_branch(masscompdata(), kzero, extra)
+
+    
+
+    # This part is to identify stong fluctuations
+    # between different simulations.
+    # Write stdout to a file, and keep only this printed
+    # output. Then use find_clumps_not_in_file.py to
+    # extract descendants and progenitors, which you then
+    # should copypaste into run_extreme_growth_plots.sh
+    # file to run the comparisons
+
+    if p.do_extra_mass_evolution_checks:
+        extreme_growth_desc_ind = np.array(extreme_growth_desc_ind)
+        extreme_growth_prog_ind = np.array(extreme_growth_prog_ind)
+        extreme_growth_desc_snap_ind = np.array(extreme_growth_desc_snap_ind)
+        extreme_growth_prog_snap_ind = np.array(extreme_growth_prog_snap_ind)
+        snapind_min = extreme_growth_desc_snap_ind.min()
+        snapind_max = extreme_growth_desc_snap_ind.max()
+
+        for s in range(snapind_min, snapind_max + 1):
+            mask = extreme_growth_desc_snap_ind == s
+            dinds = extreme_growth_desc_ind[mask]
+            pinds = extreme_growth_prog_ind[mask]
+            dsnapinds = extreme_growth_desc_snap_ind[mask]
+            psnapinds = extreme_growth_prog_snap_ind[mask]
+            dnparts = mtd.npart[s][dinds]
+            sortinds = np.argsort(dnparts)[::-1]
+            for i in range(sortinds.shape[0]):
+                ind = sortinds[i]
+                print(
+                        mtd.descendants[s][dinds[ind]], 
+                        p.outputnrs[s], 
+                        mtd.mass[s][dinds[ind]], 
+                        mtd.x[s][dinds[ind]][0], 
+                        mtd.x[s][dinds[ind]][1], 
+                        mtd.x[s][dinds[ind]][2], 
+                        mtd.descendants[psnapinds[ind]][pinds[ind]], 
+                        p.outputnrs[psnapinds[ind]], 
+                        mtd.mass[psnapinds[ind]][pinds[ind]], 
+                        mtd.x[psnapinds[ind]][pinds[ind]][0], 
+                        mtd.x[psnapinds[ind]][pinds[ind]][1], 
+                        mtd.x[psnapinds[ind]][pinds[ind]][2], 
+                        dnparts[ind]
+                    )
 
 
+
+    if p.do_subhalo_investigation:
+        print(
+                "Total subhaloes:", extra.total_subhaloes_in_growth, 
+                "Mass+level inc:", extra.mass_and_level_increase, 
+                "Mass+level dec:", extra.mass_and_level_decrease)
     return
 
 
 
-
-
-
-
-#===============================================
-def get_mass_evolution_old(p, r, mtd, cd, sd):
-#===============================================
-    """
-    Compute mass fluctuations and growth along 
-    the main branches of z=0 haloes.
-
-        p:      params object
-        r:      results object
-        mtd:    mtreedata object
-        cd:     clumpdata object
-        sd:     snapshotdata object
-    """
-
-
-    print("Computing mass evolution")
-
-
-
-
-    # loop over clumps at z=0 and walk down their main branch
-
-    debug = False
-    extremecount = 0
-
-    for c, clump in enumerate(mtd.descendants[p.z0]):
-        prevhalomgrowth = None
-        prevsubhalomgrowth = None
-        prevbothmgrowth = None
-
-        if clump > 0:
-            # clump = 0 is removed jumper;
-            # clump < 0 is merger; we're only taking main branch here
-
-            desc_snap_ind = p.z0
-            dind = c
-            desc = mtd.descendants[p.z0][c]
-            prog = mtd.progenitors[p.z0][c]
-
-            loop = True
-
-            #  while prog > 0: # this doesn't allow for jumpers
-            while loop:
-
-                desc_is_halo = desc in cd.haloid[desc_snap_ind]
-
-                if debug: 
-                    if desc_snap_ind == p.z0:
-                        print("--------------------------------------")
-                    print("Clump", desc, "is halo?", desc_is_halo , "snap", p.noutput-desc_snap_ind)
-
-                if prog > 0:    # if progenitor isn't jumper
-                    # find progenitor's index in previous snapshot
-                    p_snap_ind = desc_snap_ind + 1
-                    pind = np.where(mtd.descendants[p_snap_ind]==prog)[0]
-                elif prog < 0:
-                    p_snap_ind = _get_snap_ind(p, mtd.progenitor_outputnrs[desc_snap_ind][dind])
-                    try:
-                        pind = np.where(mtd.descendants[p_snap_ind]==-prog)[0]
-                    except TypeError:
-                        print(p_snap_ind)
-                        print(mtd.descendants[p_snap_ind]==-prog)
-                        print(pind)
-                        print(type(pind))
-                        quit()
-                else:
-                    break
-
-
-                if pind.shape[0] != 1:
-                    print('got pind.shape=', pind.shape)
-                    print('something went wrong, exiting')
-                    raise IndexError
-
-
-                prog_is_halo = prog in cd.haloid[p_snap_ind]
-                if debug:
-                    print("Prog", prog, "is halo?", prog_is_halo , "snap", p.noutput-p_snap_ind)
-
-                md = mtd.mass[desc_snap_ind][dind]
-                mp = mtd.mass[p_snap_ind][pind]
-                td = sd.times[desc_snap_ind]
-                tp = sd.times[p_snap_ind]
-
-
-                calc_desc_halo = desc_is_halo and (md >= p.mth_main)
-                calc_desc_subhalo = (not desc_is_halo) and (md >= p.mth_sub)
-                calc_desc_both = calc_desc_halo or (md >= p.mth_main) # where main and subhaloes are counted together
-
-                calc_prog_halo = prog_is_halo and (mp >= p.mth_main)
-                calc_prog_subhalo = (not prog_is_halo) and (mp >= p.mth_sub)
-                calc_prog_both = calc_prog_halo or (mp >= p.mth_main)
-
-
-                halomgrowth = None
-                subhalomgrowth = None
-                bothmgrowth = None
-
-                if calc_desc_halo and calc_prog_halo:
-                    halomgrowth = _calc_mass_growth(md, mp, td, tp)
-                    r.add_halo_growth(halomgrowth)
-                if calc_desc_subhalo and calc_prog_subhalo:
-                    subhalomgrowth = _calc_mass_growth(md, mp, td, tp)
-                    r.add_subhalo_growth(subhalomgrowth)
-
-                if calc_desc_both and calc_prog_both:
-                    bothmgrowth = _calc_mass_growth(md, mp, td, tp)
-                    r.add_any_growth(bothmgrowth)
-                    
-                if prevhalomgrowth is not None and halomgrowth is not None: 
-                    halomassfluct = _calc_mass_fluct(halomgrowth, prevhalomgrowth)
-                    r.add_halo_fluct(halomassfluct)
-                if prevsubhalomgrowth is not None and subhalomgrowth is not None: 
-                    subhalomassfluct = _calc_mass_fluct(subhalomgrowth, prevsubhalomgrowth)
-                    r.add_subhalo_fluct(subhalomassfluct)
-                if prevbothmgrowth is not None and bothmgrowth is not None: 
-                    bothmassfluct = _calc_mass_fluct(bothmgrowth, prevbothmgrowth)
-                    r.add_any_fluct(bothmassfluct)
-
-                
-                # prepare next loop
-                
-                prevhalomgrowth = halomgrowth
-                prevsubhalomgrowth = subhalomgrowth
-                prevbothmgrowth = bothmgrowth
-
-                desc_snap_ind = p_snap_ind
-                dind = pind
-                desc = prog
-                prog = mtd.progenitors[p_snap_ind][pind]
-
-
-
-                if halomgrowth is None and subhalomgrowth is None and bothmgrowth is None:
-                    newgrowths = False
-                else:
-                    newgrowths = True
-                if prevbothmgrowth is None and prevsubhalomgrowth is None and prevhalomgrowth is None:
-                    prevgrowths = False
-                else:
-                    prevgrowths = True
-
-                if (not newgrowths) and (not prevgrowths):
-                    break
-
-
-    print("Finished eval")
 
 
 
@@ -1160,9 +1262,9 @@ def _calc_dlogMdlogt(md, mp, td, tp):
 
 
 
-#=========================================================================
-def _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB, unit_lB):
-#=========================================================================
+#==================================================================================
+def _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, r200A, r200B, unit_lB):
+#==================================================================================
     """
     calculate the displacement for halo A and B 
 
@@ -1170,26 +1272,25 @@ def _calc_displacement(mA, mB, xA, xB, vA, vB, tA, tB, rhoCA, rhoCB, unit_lB):
     xA, xB: locations
     vA, vB: velocities
     tA, tB: cosmic times
-    rhoCA, rhoCB: critical densities
+    r200A, r200B: radii of 200 critical densities containing mA, mB
     unit_lB: unit length at snapshot B
     """
 
-    r200A = compute_R200(mA, rhoCA)
-    r200B = compute_R200(mB, rhoCB)
     dt = tB - tA
-
     dx = xB - xA
     for i in range(3):
         # ASSUMING BOXSIZE = 1 IN INTERNAL UNITS
         if dx[i] > 0.5 * unit_lB:
+            #  print("Correcting periodicity", dx[i], dx[i] - unit_lB, unit_lB)
             dx[i] -= unit_lB
         if dx[i] < -0.5 * unit_lB:
+            #  print("Correcting periodicity", dx[i], dx[i] + unit_lB, unit_lB)
             dx[i] += unit_lB
-
 
     vector_quantity = dx - 0.5 * (vB + vA) * dt
     abs_quantity = vector_quantity[0]**2 + vector_quantity[1]**2 + vector_quantity[2]**2
     abs_quantity = np.sqrt(abs_quantity)
+
 
     vec_vel = (vA + vB)*dt
     vec_abs = vec_vel[0]**2 + vec_vel[1]**2 + vec_vel[2]**2

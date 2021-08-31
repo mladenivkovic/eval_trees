@@ -21,19 +21,20 @@ from tools_for_plotting import plot_selection # set it in tools_for_plotting.py 
 
 
 # set which plots to make
-plot_mass_growth_halo_subhalo = False
-plot_mass_fluctuations_halo_subhalo = False
-plot_mass_growth_and_fluctuations_vertical = False
-plot_geometry_partbins = False
-plot_main_brench_length_halo_subhalo_no_partbins = False
-plot_main_brench_length_halo_subhalo_partbins = False
-plot_nbranches_halo_subhalo_no_partbins = False
-plot_nbranches_all_no_partbins = False
-plot_nbranches_halo_subhalo_particle_bins = False
-plot_displacements = True
-plot_dlogMdlogt = False
+plot_mass_growth_halo_subhalo = True # mass_growth-X.png
+plot_mass_fluctuations_halo_subhalo = True # mass_fluctuations-halo-subhalo-X.png
+plot_mass_growth_and_fluctuations_vertical = True # mass-statistics-X.png
+plot_geometry_partbins = True # tree_geometry_X.png
+plot_main_brench_length_halo_subhalo_no_partbins = True # main-branch-lengths-no-partbins-X.png
+plot_main_brench_length_halo_subhalo_partbins = True # main-branch-lengths-halo-subhalo-partbins-X.png
+plot_nbranches_halo_subhalo_no_partbins = True # number-of-branches-halo-subhalo-no-partbins-X.png
+plot_nbranches_all_no_partbins = True # nbranches-all-no-bins-X.png
+plot_nbranches_halo_subhalo_particle_bins = True # number-of-branches-halo-subhalo-partbins-X.png
+plot_displacements = True # displacements-X.png
+plot_dlogMdlogt = True # dlogMdlogt-X.png
 
 print_tree_statistics_table = False
+print_LIDITs_table = False
 
 
 
@@ -54,6 +55,7 @@ mpl.rcParams.update(params)
 
 
 hist_bins = 100
+hist_logbins_displacement = np.logspace(-4, 1.5,200)
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#e377c2', '#bcbd22', '#17becf']
 alpha = 0.6
 
@@ -123,7 +125,7 @@ def main():
     # mass growth and fluctuations, no divide
     if plot_mass_growth_and_fluctuations_vertical:
         # mass-statistics.png
-        fig6 = plt.figure(6, figsize=(6, 12))
+        fig6 = plt.figure(6, figsize=(6, 10))
         ax7 = fig6.add_subplot(2, 1, 1)
         ax8 = fig6.add_subplot(2, 1, 2)
 
@@ -383,6 +385,7 @@ def main():
                 hist, bin_edges = np.histogram(cut, bins = p.nout, range=(1, p.nout))
                 mblmin = min(mblmin, hist[hist>0].min())
                 bins_left = bin_edges[:-1]
+                hist += 1 # plot N+1
 
                 ax.semilogy(bins_left, hist,
                     label = labelnames[f],
@@ -402,6 +405,7 @@ def main():
 
                 cut = r.branchlengths_sub[b][:r.branchlen_free_sub[b]]
                 hist, bin_edges = np.histogram(cut, bins = p.nout, range=(1, p.nout))
+                hist += 1 # plot N+1
                 mblmin = min(mblmin, hist[hist>0].min())
                 bins_left = bin_edges[:-1]
 
@@ -433,6 +437,7 @@ def main():
 
                 cut = r.branchlengths_main[b][:r.branchlen_free_main[b]]
                 hist, bin_edges = np.histogram(cut, bins = p.nout, range=(1, p.nout))
+                hist += 1 # plot N + 1
                 hbranchlen_all += hist
                 mblmin = min(mblmin, hist[hist>0].min())
                 bins_left = bin_edges[:-1]
@@ -602,7 +607,11 @@ def main():
             cut = r.displacements[:r.displacement_free]
             displacements_max = max(displacements_max, cut.max())
             displacements_max = min(displacements_max, 10)
-            hist, bin_edges = np.histogram(cut, bins=hist_bins, range=(1e-6, 10))
+            hist, bin_edges = np.histogram(cut, 
+                        bins=hist_logbins_displacement, 
+                        range=(hist_logbins_displacement[0], 
+                        hist_logbins_displacement[-1])
+                    )
 
             #  find 90 and 99 percentile bins
             displacements_ninety_percent = None
@@ -610,7 +619,7 @@ def main():
 
             cumulation = 0.
             hist_tot = hist.sum()
-            for i in range(hist_bins):
+            for i in range(hist_logbins_displacement.shape[0]):
                 cumulation += hist[i]
                 if cumulation >= 0.9 * hist_tot:
                     if displacements_ninety_percent is None:
@@ -662,6 +671,30 @@ def main():
                 print("{0:25} {1:.1f}".format(binnames[b], av))
             print("-------------------------------------------------")
             print("-------------------------------------------------")
+
+
+        if print_LIDITs_table:
+            #----------------------------------------------
+            # Print the table containing average values
+            # for the tree
+            #----------------------------------------------
+            npruned = r.pruned_free
+            pruned_nparts = r.pruned_nparts[:npruned]
+            pruned_is_halo = r.pruned_is_halo[:npruned]
+
+            print("LIDITs Table for", srcfname)
+            print("-------------------------------------------------")
+
+            print("Total LIDITS     ", npruned)
+            print("max npart:       ", pruned_nparts.max())
+            print("median npart:    ", np.median(pruned_nparts))
+            print("> 100 parts:     ", np.count_nonzero(pruned_nparts > 100))
+            print("subhalo fraction:", 1. - np.count_nonzero(pruned_is_halo)/npruned)
+            print("subhalo fraction > 100 parts:", 1. - np.count_nonzero(pruned_is_halo[pruned_nparts>50])/npruned)
+
+            print("-------------------------------------------------")
+            print("-------------------------------------------------")
+
 
 
 
@@ -734,15 +767,6 @@ def main():
 
         figname="mass_fluctuations-halo-subhalo-"+suffix+".png"
         fig2.savefig(figname, dpi=300)
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1003,7 +1027,7 @@ def main():
 
         ax14.set_ylabel(r"$N + 1$")
         ax14.set_xlabel(r"$\Delta_r$")
-        ax14.set_xlim((0.1, max(int(displacements_max+1), 10.0)))
+        ax14.set_xlim((0.001, max(int(displacements_max+1), 10.0)))
 
         ymax = 10**int(np.log10(displacements_count_max)+1)
         ax14.set_ylim((1., ymax))

@@ -342,6 +342,55 @@ def read_halo_data(p, hd):
 
 
 
+#=====================================
+def read_clump_data(p, cd):
+#=====================================
+    """
+    reads in clumpfinder data from files.
+        p :   params object
+        cd :  clumpdata object
+    """
+
+    print("Reading in clump data.")
+
+    # Loop over files
+    dir_template = 'output_'
+    startnr=p.lastdirnr
+    for output in range(p.noutput):
+
+        dirnr =  str(startnr - output).zfill(5)
+        srcdir = dir_template + dirnr
+
+        fnames = [srcdir + '/' + "clump_"+dirnr+'.txt' + str(cpu+1).zfill(5) for cpu in range(p.ncpu)]
+
+        try:
+            datalist1 = [np.zeros((1)) for i in range(p.ncpu)]
+            datalist2 = [np.zeros((1)) for i in range(p.ncpu)]
+            i = 0
+            for f in fnames:
+                #  datalist1[i], datalist2[i] = np.loadtxt(f, dtype='int', skiprows=1, usecols=[0, 1], unpack=True)
+                res = np.loadtxt(f, dtype='int', skiprows=1, usecols=[0, 1], unpack=True)
+                if res.shape[0] > 0:
+                    datalist1[i] = np.atleast_1d(res[0])
+                    datalist2[i] = np.atleast_1d(res[1])
+                    i += 1
+
+            if i > 0:
+                fulldata1 = np.concatenate(datalist1[:i], axis=0)
+                fulldata2 = np.concatenate(datalist2[:i], axis=0)
+                cd.clumpid[output] = fulldata1[:]
+                cd.clump_level[output] = fulldata2[:]
+
+        except IOError: # If file doesn't exist
+            print( "Didn't find any clump data in", srcdir)
+
+    
+
+    return
+
+
+
+
 #===================================
 def write_results_formatted(r):
 #===================================

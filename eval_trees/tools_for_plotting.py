@@ -15,8 +15,8 @@ class plot_selection():
     do_debug = False
 
     # using sussing criteria
-    do_sussing_ntrace = True
-    do_sussing_incexcl = False
+    do_sussing_ntrace = False
+    do_sussing_incexcl = True
 
     # use my arbitrary mass threshold
     do_my_threshold_ntrace = False
@@ -72,8 +72,8 @@ def file_selection(ps):
 
     elif ps.do_my_threshold_ntrace:
         #  ntrace = [1, 10, 100, 1000]
-        ntrace = [1, 100, 200, 1000]
-        #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
+        #  ntrace = [1, 100, 200, 1000]
+        ntrace = [1, 10, 50, 100, 200, 500, 1000]
         allfiles = ['eval_trees-no-threshold-ntrace-'+str(i)+'.pkl' for i in ntrace]
         labelnames = [r'$n_{mb}='+str(i)+'$' for i in ntrace]
         #  linestyle = ['-', '-', '--', '--', '-.', '-.', ':']
@@ -117,7 +117,7 @@ def file_selection(ps):
         suffix='debug-npart'
 
     elif ps.do_npart_threshold_ntrace:
-        ntrace = [1, 10, 100, 1000]
+        ntrace = [1, 10, 200, 1000]
         #  ntrace = [1, 100, 200, 1000]
         #  ntrace = [1, 10, 50, 100, 200, 500, 1000]
         allfiles = ['eval_trees-npart-threshold-'+str(ps.npart_threshold)+'-ntrace-'+str(i)+'.pkl' for i in ntrace]

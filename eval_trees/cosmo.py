@@ -149,4 +149,4 @@ def compute_R200(M, rhoC):
     critical density, for given halo mass M
     """
 
-    return (0.75 / np.pi * M/ rhoC)**(1./3)
+    return (3. / (4. * np.pi) * M / (200 * rhoC))**(1./3.)
